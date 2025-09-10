@@ -69,7 +69,7 @@ const Footer: React.FC = () => {
                         <form className="mt-4 flex flex-col sm:flex-row gap-2" onSubmit={(e) => e.preventDefault()}>
                             <input type="email" required placeholder="Enter your email"
                                 className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            <button type="submit" className="w-full sm:w-auto whitespace-nowrap rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black border border-black hover:bg-black hover:text-white transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black">Join our quarterly update</button>
+                            <button type="submit" className="w-full sm:w-auto whitespace-nowrap rounded-xl bg-white px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 hover:bg-gray-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Join our quarterly update</button>
                         </form>
 
                         {/* Social */}
