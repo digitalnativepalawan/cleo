@@ -1,0 +1,29 @@
+import React from 'react';
+
+const HeroSection: React.FC = () => {
+    return (
+        <section className="bg-white text-[#121212]">
+            <div className="container mx-auto px-6 py-24 sm:py-32 text-center flex flex-col items-center justify-center">
+                <a href="#" aria-label="Binga Beach Homepage" className="block shrink-0 mb-8">
+                    <img src="https://bingabeach.com/wp-content/uploads/2019/02/cropped-bb-logo.png" alt="Binga Beach Logo" className="w-auto h-20 md:h-24 transition-transform duration-300 hover:scale-105" />
+                </a>
+                <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-normal leading-tight tracking-tight mb-4 max-w-[22ch] mx-auto">
+                    The Future of Real World Assets in Palawan
+                </h1>
+                <p className="text-base md:text-lg lg:text-xl text-[#121212]/70 mb-10 max-w-[40ch] mx-auto">
+                    Villas, farming, hardware, and digital integration
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <button className="w-full sm:w-auto bg-[#0A84FF] text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:bg-blue-600 transition-all duration-300 transform hover:scale-105">
+                        Download Deck
+                    </button>
+                    <button className="w-full sm:w-auto bg-transparent border-2 border-[#121212] text-[#121212] font-semibold py-3 px-8 rounded-lg hover:bg-[#121212] hover:text-white transition-all duration-300 transform hover:scale-105">
+                        Schedule Call
+                    </button>
+                </div>
+            </div>
+        </section>
+    );
+};
+
+export default HeroSection;
