@@ -10,7 +10,7 @@ const socialLinksData = [
     { name: 'Instagram', href: 'https://www.instagram.com/bingabeachpalawan/', icon: <InstagramIcon /> },
     { name: 'Facebook', href: 'https://www.facebook.com/bingabeachresort', icon: <FacebookIcon /> },
     { name: 'X/Twitter', href: 'https://x.com/bingabeach', icon: <TwitterXIcon /> },
-    { name: 'GitHub', href: 'https://github.com/cleopatrasirv/palawan-ecosystem', icon: <GitHubIcon /> },
+    { name: 'GitHub', href: 'https://github.com/digitalnativepalawan/palawan-tourism-ecosystem', icon: <GitHubIcon /> },
 ];
 
 const SocialLinks: React.FC<{className?: string}> = ({ className }) => {

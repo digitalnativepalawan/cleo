@@ -80,7 +80,7 @@ const MobileNav: React.FC<{
                             </li>
                             <li>
                                 <a 
-                                    href="https://github.com/cleopatrasirv/palawan-ecosystem"
+                                    href="https://github.com/digitalnativepalawan/palawan-tourism-ecosystem"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={onClose}
@@ -227,10 +227,10 @@ const Header: React.FC<{
                             {/* Desktop GitHub Button */}
                              <div className="hidden md:block">
                                 <a
-                                    href="https://github.com/cleopatrasirv/palawan-ecosystem"
+                                    href="https://github.com/digitalnativepalawan/palawan-tourism-ecosystem"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    aria-label="View project on GitHub"
+                                    aria-label="View source on GitHub"
                                     className="flex items-center justify-center w-9 h-9 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-full transition-all duration-200"
                                 >
                                     <GitHubIcon className="h-4 w-4 text-gray-500" />
