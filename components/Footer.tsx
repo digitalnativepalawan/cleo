@@ -116,9 +116,9 @@ const Footer: React.FC = () => {
                     <div className="text-sm">
                         <h4 className="font-semibold text-gray-900">Contact</h4>
                         <ul className="mt-3 space-y-2 text-gray-600">
-                            <li>San Vicente – Lumambong Beach, Palawan</li>
-                            <li><a className="hover:text-gray-900" href="mailto:hello@palawan-ecosystem.com">hello@palawan-ecosystem.com</a></li>
-                            <li><a className="hover:text-gray-900" href="tel:+639000000000">+63 900 000 0000</a></li>
+                            <li>Lumambong Beach, Palawan Island 5309</li>
+                            <li><a className="hover:text-gray-900" href="mailto:david@bingabeach.com">david@bingabeach.com</a></li>
+                            <li><a className="hover:text-gray-900" href="tel:+639474443597">+63 947 444 3597</a></li>
                         </ul>
 
                         {/* Locale toggles */}

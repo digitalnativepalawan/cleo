@@ -61,13 +61,11 @@ ${message}
                                 <ContactInfoItem icon={<MailIcon />} title="Email Inquiry">
                                     <a href="mailto:david@bingabeach.com" className="hover:text-[#0A84FF] transition-colors">david@bingabeach.com</a>
                                 </ContactInfoItem>
-                                <ContactInfoItem icon={<PhoneIcon />} title="Phone (MNL)">
-                                    <p>+63 917 123 4567 (Cleopatra SIRV)</p>
-                                    <p>+63 917 765 4321 (Binga Beach Bros.)</p>
+                                <ContactInfoItem icon={<PhoneIcon />} title="Phone">
+                                    <a href="tel:+639474443597" className="hover:text-[#0A84FF] transition-colors">+63 947 444 3597</a>
                                 </ContactInfoItem>
                                 <ContactInfoItem icon={<LocationMarkerIcon />} title="Office Address">
-                                    <p>Lumambong Beach, San Vicente,</p>
-                                    <p>Palawan, Philippines</p>
+                                    <p>Lumambong Beach, Palawan Island 5309</p>
                                 </ContactInfoItem>
                             </div>
                         </div>

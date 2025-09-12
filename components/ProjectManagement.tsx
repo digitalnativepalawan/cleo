@@ -3,15 +3,12 @@ import type { UserRole } from './Portal';
 
 import {
     FolderIcon, UserCircleIcon, LogoutIcon, ChevronRightIcon,
-    DownloadIcon, ArchiveIcon
+    DownloadIcon, ArchiveIcon, XIcon, MenuIcon
 } from './portal/PortalIcons';
 
 import { INITIAL_PROJECTS } from '../data/mockData';
 import MainDashboard from './portal/modules/MainDashboard';
-import GenericProjectModule from './portal/modules/GenericProjectModule';
-import ChecklistModule from './portal/modules/ChecklistModule';
-import PropertiesModule from './portal/modules/PropertiesModule';
-import VincenteHouseModule from './portal/modules/VincenteHouseModule';
+import ProjectModule from './portal/modules/VincenteHouseModule'; // Using VincenteHouseModule as the unified module
 import BlogManagementModule from './BlogManagementModule';
 import type { BlogPost } from '../App';
 
@@ -102,6 +99,7 @@ export const ProjectsWorkspace: React.FC<{
     setBlogPosts: React.Dispatch<React.SetStateAction<BlogPost[]>>;
 }> = ({ role, onSignOut, blogPosts, setBlogPosts }) => {
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const activeProject = useMemo(() => INITIAL_PROJECTS.find(p => p.id === activeProjectId), [activeProjectId]);
 
@@ -115,34 +113,43 @@ export const ProjectsWorkspace: React.FC<{
             return <MainDashboard onProjectSelect={setActiveProjectId} />;
         }
         
-        switch (activeProject.id) {
-            case 'project-vincente':
-                return <VincenteHouseModule project={activeProject} role={role} showToast={showToast} />;
-            case 'project-blog':
-                return <BlogManagementModule role={role} showToast={showToast} posts={blogPosts} setPosts={setBlogPosts} />;
-            case 'project-properties':
-                return <PropertiesModule role={role} showToast={showToast} />;
-            case 'project-sec':
-            case 'project-bir':
-                return <ChecklistModule project={activeProject} role={role} showToast={showToast} />;
-            default:
-                return <GenericProjectModule project={activeProject} role={role} showToast={showToast} />;
+        if (activeProject.id === 'project-blog') {
+            return <BlogManagementModule role={role} showToast={showToast} posts={blogPosts} setPosts={setBlogPosts} />;
         }
+        
+        // All other projects use the unified ProjectModule
+        return <ProjectModule project={activeProject} role={role} showToast={showToast} />;
     };
     
     return (
-        <div className="flex h-full bg-gray-50">
+        <div className="h-full bg-gray-50 md:flex">
+            {/* Overlay for mobile */}
+            {isSidebarOpen && (
+                 <div
+                    className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
             {/* Sidebar */}
-            <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
-                <div className="h-16 flex-shrink-0 px-4 flex items-center border-b">
-                    <FolderIcon className="h-6 w-6 text-blue-600" />
-                    <span className="ml-2 font-semibold text-lg text-gray-800">Projects</span>
+            <aside className={`fixed top-0 left-0 h-full w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-300 ease-in-out z-40 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                 <div className="h-16 flex-shrink-0 px-4 flex items-center justify-between border-b">
+                    <div className="flex items-center">
+                        <FolderIcon className="h-6 w-6 text-blue-600" />
+                        <span className="ml-2 font-semibold text-lg text-gray-800">Projects</span>
+                    </div>
+                     <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 -mr-2 text-gray-500 hover:text-gray-800" aria-label="Close menu">
+                        <XIcon className="h-6 w-6"/>
+                    </button>
                 </div>
                 <nav className="flex-1 overflow-y-auto p-2 space-y-1">
                     {INITIAL_PROJECTS.map(project => (
                         <button
                             key={project.id}
-                            onClick={() => setActiveProjectId(project.id)}
+                            onClick={() => {
+                                setActiveProjectId(project.id);
+                                setIsSidebarOpen(false);
+                            }}
                             className={`w-full text-left flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                                 activeProjectId === project.id
                                     ? 'bg-blue-50 text-blue-700'
@@ -173,22 +180,27 @@ export const ProjectsWorkspace: React.FC<{
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col overflow-y-auto">
+            <main className="h-full flex-1 flex flex-col overflow-hidden">
                 <header className="h-16 flex-shrink-0 px-6 flex items-center justify-between border-b bg-white z-10">
-                    <h1 className="text-xl font-semibold text-gray-900">{activeProject?.name || 'Dashboard'}</h1>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-gray-500 hover:text-gray-800" aria-label="Open projects menu">
+                            <MenuIcon className="h-6 w-6" />
+                        </button>
+                        <h1 className="text-xl font-semibold text-gray-900">{activeProject?.name || 'Dashboard'}</h1>
+                    </div>
                 </header>
                 <div className="flex-1 overflow-y-auto">
                     {activeProject ? (
-                        <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-                            <div className="xl:col-span-2">
+                        <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                            <div className="lg:col-span-2">
                                 {renderModule()}
                             </div>
-                            <aside className="xl:col-span-1 xl:sticky xl:top-6">
+                            <aside className="hidden lg:block lg:col-span-1 lg:sticky lg:top-6">
                                 <SidePanel project={activeProject} role={role} />
                             </aside>
                         </div>
                     ) : (
-                        <div className="p-6">{renderModule()}</div>
+                        <div className="p-4 sm:p-6">{renderModule()}</div>
                     )}
                 </div>
             </main>

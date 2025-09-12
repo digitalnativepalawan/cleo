@@ -1,7 +1,7 @@
 export type ProjectStatus = 'Active' | 'Planned' | 'On Hold' | 'Completed';
 export type PropertyTenure = 'Titled' | 'Tax Dec' | 'Leasehold';
 export type ChecklistStatus = 'Pending' | 'In Progress' | 'Submitted' | 'Approved' | 'Rejected';
-export type Attachment = { type: 'image' | 'drive'; value: string; name?: string; };
+export type Attachment = { type: 'image' | 'drive' | 'local'; value: string; name?: string; };
 
 export type TaskStatus = 'Pending' | 'Backlog' | 'In Progress' | 'Blocked' | 'Review' | 'Done';
 export type TaskType = 'Design' | 'Site Prep' | 'Foundation' | 'Structure' | 'MEP' | 'Finish' | 'Inspection';
