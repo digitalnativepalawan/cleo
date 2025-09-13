@@ -151,6 +151,7 @@ export const calculateWeeklyTotals = (projectData: ProjectData): WeeklyTotals =>
 
         try {
             const [year, month, day] = itemDateStr.split('-').map(Number);
+            if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) continue;
             const localItemDate = new Date(year, month - 1, day);
             
             if (isNaN(localItemDate.getTime())) continue;

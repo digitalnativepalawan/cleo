@@ -125,7 +125,7 @@ const BlogManagementModule: React.FC<BlogManagementModuleProps> = ({ role, showT
     };
 
     return (
-        <div className="p-4 sm:p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
                 <div>
                     <h2 className="text-xl font-bold text-gray-800">Blog Management</h2>
@@ -134,7 +134,7 @@ const BlogManagementModule: React.FC<BlogManagementModuleProps> = ({ role, showT
                 <button 
                     onClick={handleAddNew} 
                     disabled={role !== 'admin'}
-                    className="flex items-center gap-2 text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 text-sm bg-blue-600 text-white px-6 py-2.5 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
                 >
                     <PlusIcon /><span>Add New Post</span>
                 </button>
