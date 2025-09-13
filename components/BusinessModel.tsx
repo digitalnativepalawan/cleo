@@ -28,15 +28,17 @@ const PillarCard = ({ icon, title, points, highlight = false }: { icon: React.Re
 
 interface BusinessModelProps {
     currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
 }
 
-const BusinessModel: React.FC<BusinessModelProps> = ({ currency }) => {
+const BusinessModel: React.FC<BusinessModelProps> = ({ weeklyTotals, currency }) => {
     return (
         <section id="model" className="bg-white py-20 sm:py-24">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Business Model & Revenue Streams</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-4xl mx-auto">A balanced alliance combining proven land authority, operational excellence, and vertical expansion.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 
                 <div className="max-w-7xl mx-auto">
@@ -45,7 +47,7 @@ const BusinessModel: React.FC<BusinessModelProps> = ({ currency }) => {
                             icon={<OfficeBuildingIcon className="h-8 w-8" />} 
                             title="Cleopatra SIRV Holdings"
                             points={[
-                                "Beyond a holding company: leads farming integration and hardware depots supporting Palawan's construction wave.",
+                                "Beyond a holding company: leads farming integration and hardware depots supporting Palawan’s construction wave.",
                                 "Expands SIRV product development, corporate finance, and brand strategy.",
                                 "Builds supply resilience through agri/hardware verticals."
                             ]} 
@@ -67,7 +69,7 @@ const BusinessModel: React.FC<BusinessModelProps> = ({ currency }) => {
                             title="Binga Beach Brothers Inc."
                             points={[
                                 "More than a developer: owns 5,282 sqm titled beachfront land (₱75M) with ECC & TIEZA permits.",
-                                "Operator of a proven boutique resort with 10 kVA solar, first "Retiree Philippines" in Palawan.",
+                                "Operator of a proven boutique resort with 10 kVA solar, first “Retiree Philippines” in Palawan.",
                                 "Expanding into modular villas for sale with full compliance and rental pool management."
                             ]}
                         />

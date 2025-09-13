@@ -220,11 +220,11 @@ export const ProjectsWorkspace: React.FC<{
                             <div className="flex items-center gap-4 text-xs mt-1">
                                 <div className="flex items-center gap-1.5">
                                     <span className="font-medium text-gray-500">Paid (wk):</span>
-                                    <span className="font-semibold text-green-600">₱{weeklyTotals.paid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                    <span className="font-semibold text-green-600">₱{weeklyTotals.paid.toLocaleString()}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <span className="font-medium text-gray-500">Unpaid (wk):</span>
-                                    <span className="font-semibold text-red-600">₱{weeklyTotals.unpaid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                    <span className="font-semibold text-red-600">₱{weeklyTotals.unpaid.toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>

@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import type { UserRole } from '../../Portal';
 import type { Task, Labor, Material, ProjectData, TaskStatus, TaskType, LaborRateType, MaterialCategory, MaterialUnit } from '../../../types/portal';
-import { 
-    PlusIcon, PencilIcon, TrashIcon, EyeIcon, SearchIcon, FilterIcon, 
-    CalendarIcon, DotsVerticalIcon, ChevronDownIcon, XIcon, UploadIcon,
-    TableIcon, ViewGridIcon, ImageIcon
+import {
+    PlusIcon, PencilIcon, TrashIcon, XIcon, SearchIcon, FilterIcon,
+    CalendarIcon, DotsVerticalIcon, CheckCircleIcon, ClockIcon, BanIcon,
+    TableIcon, ViewGridIcon, UploadIcon, ImageIcon, DriveIcon
 } from '../PortalIcons';
 
 // Status color mappings
@@ -268,11 +268,11 @@ const MaterialModal: React.FC<{
             attachment: { type: 'local', value: fileUrl, name: file.name }
         }));
 
-            // Create preview URL
+        // Mock receipt data extraction
         if (file.type.startsWith('image/')) {
             setIsProcessing(true);
             
-            // Mock data extraction (in real app, this would call OCR service)
+            // Simulate processing delay
             setTimeout(() => {
                 // Mock extracted data from receipt
                 const extractedData = {
@@ -743,11 +743,10 @@ const ProjectModule: React.FC<{
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
-            {/* Header with Tabs */}
-            <div className="border-b border-gray-200 -mx-6 px-6 pb-4">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">{project.name} Management</h2>
-                <nav className="flex space-x-8" aria-label="Tabs">
+        <div className="space-y-6">
+            {/* Tab Navigation */}
+            <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8">
                     {[
                         { key: 'tasks', label: 'Tasks', count: projectData.tasks.length },
                         { key: 'labor', label: 'Labor', count: projectData.labor.length },
@@ -756,10 +755,10 @@ const ProjectModule: React.FC<{
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key as any)}
-                            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                                 activeTab === tab.key
-                                    ? 'border-blue-500 text-blue-600 bg-blue-50 rounded-t-md px-4'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50 rounded-t-md px-4'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                         >
                             {tab.label} ({tab.count})
@@ -769,45 +768,55 @@ const ProjectModule: React.FC<{
             </div>
 
             {/* Controls */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-gray-50 p-4 rounded-lg -mx-6 mx-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-                    <div className="relative w-full sm:w-64">
-                        <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-1 w-full sm:w-auto">
+                    <div className="relative">
+                        <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 pointer-events-none" />
                         <input
                             type="text"
+                            placeholder="Search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Search..."
+                            className="w-full sm:w-64 pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
-                    <div className="flex items-center gap-2 bg-white rounded-md border border-gray-200 p-1">
+                    {activeTab === 'tasks' && (
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full sm:w-auto px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">All Status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Done">Done</option>
+                        </select>
+                    )}
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                    <div className="flex border border-gray-300 rounded-md">
                         <button
                             onClick={() => setViewMode('table')}
-                            className={`p-2 rounded transition-colors ${
-                                viewMode === 'table' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'
-                            }`}
+                            className={`p-2 touch-manipulation ${viewMode === 'table' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
                         >
                             <TableIcon className="h-4 w-4" />
                         </button>
                         <button
                             onClick={() => setViewMode('cards')}
-                            className={`p-2 rounded transition-colors ${
-                                viewMode === 'cards' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'
-                            }`}
+                            className={`p-2 touch-manipulation ${viewMode === 'cards' ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
                         >
                             <ViewGridIcon className="h-4 w-4" />
                         </button>
                     </div>
+                    <button
+                        onClick={handleAddNew}
+                        disabled={role !== 'admin'}
+                        className="flex items-center gap-2 text-sm bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed touch-manipulation whitespace-nowrap"
+                    >
+                        <PlusIcon className="h-4 w-4" />
+                        Add {activeTab.slice(0, -1)}
+                    </button>
                 </div>
-                <button
-                    className="w-full lg:w-auto flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
-                    onClick={handleAddNew}
-                    disabled={role !== 'admin'}
-                >
-                    <PlusIcon className="h-4 w-4" />
-                    Add {activeTab.slice(0, -1)}
-                </button>
             </div>
 
             {/* Content */}

@@ -42,11 +42,12 @@ const formatCurrencyValue = (phpValue: number, currency: Currency): string => {
 
 interface ExecutiveSummaryProps {
     currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
 }
 
-const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ currency }) => {
+const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ currency, weeklyTotals }) => {
     const missionVisionPoints = [
-        { title: "Establish Palawan's Flagship Destination", description: "Not just a resort—a replicable ecosystem blending tourism, agriculture, and infrastructure." },
+        { title: "Establish Palawan’s Flagship Destination", description: "Not just a resort—a replicable ecosystem blending tourism, agriculture, and infrastructure." },
         { title: "Inclusive Growth & ESG Commitment", description: "Partnering with local communities and cooperatives to build supply chains (farm-to-table produce, construction hardware)." },
         { title: "Resilient Business Model", description: "Diversified streams—eco-villas, agri sales, hardware depots, and digital securities—reducing risk exposure to single-market downturns." },
         { title: "Scalable & Replicable", description: "The Lumambong Beach model becomes the template for future expansions in Bohol, Siargao, and beyond." }
@@ -77,7 +78,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ currency }) => {
         {
             icon: <SolarPanelIcon className="h-8 w-8" />,
             title: "10kVA Solar-Powered Resort",
-            description: "Operational pilot resort with off-grid infrastructure, certified by "Retiree Philippines".",
+            description: "Operational pilot resort with off-grid infrastructure, certified by “Retiree Philippines”.",
             details: "Proof of execution and commitment to sustainability, not just projections.",
             visual: <div className="w-12 h-12 bg-gray-100 rounded-md flex-shrink-0 ml-4 flex items-center justify-center border text-gray-400" title="Placeholder for resort photo"><HomeIcon className="h-6 w-6" /></div>
         },
@@ -96,6 +97,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ currency }) => {
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Executive Summary</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">A high-level overview of our strategic direction and foundational strengths.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
                     {/* Left Column: Mission & Vision */}

@@ -101,7 +101,7 @@ const RevenueGrowthTable: React.FC<{currency: Currency}> = ({ currency }) => {
             </div>
 
             <div className="mt-auto flex justify-between items-center gap-3 pt-3 border-t border-dashed border-gray-200 text-gray-500 text-xs">
-              <span className="inline-block py-1.5 px-2.5 rounded-full font-medium bg-blue-50 text-blue-800 border border-blue-200">Revenue CAGR ('26–'30)</span>
+              <span className="inline-block py-1.5 px-2.5 rounded-full font-medium bg-blue-50 text-blue-800 border border-blue-200">Revenue CAGR (’26–’30)</span>
               <span className="text-green-600 font-semibold">≈ 15–20%</span>
             </div>
         </section>
@@ -172,11 +172,10 @@ const VillaExpansionTable: React.FC<{currency: Currency}> = ({ currency }) => {
 
 interface FinancialProjectionsProps {
     currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
 }
 
-const FinancialProjections: React.FC<FinancialProjectionsProps> = ({ currency }) => {
-    const weeklyTotals = { paid: 0, unpaid: 0 };
-
+const FinancialProjections: React.FC<FinancialProjectionsProps> = ({ currency, weeklyTotals }) => {
     const kpis = [
         { value: "70%", label: "Target Occupancy", sublabel: "Year 3 Average" },
         { value: formatCurrencyValue(12000, currency), label: "Average Daily Rate", sublabel: "Peak Season Estimate" },

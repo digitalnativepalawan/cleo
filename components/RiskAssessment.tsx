@@ -18,9 +18,10 @@ const RiskCard = ({ icon, title, mitigation }: { icon: React.ReactNode, title: s
 
 interface RiskAssessmentProps {
     currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
 }
 
-const RiskAssessment = ({ currency }: RiskAssessmentProps) => {
+const RiskAssessment: React.FC<RiskAssessmentProps> = ({ weeklyTotals, currency }) => {
     const risks = [
         {
             icon: <ScaleIcon />,
@@ -43,8 +44,6 @@ const RiskAssessment = ({ currency }: RiskAssessmentProps) => {
             mitigation: "Diversified revenue streams (local and foreign) reduce dependency on any single market. Targeting stable international and domestic tourists.",
         },
     ];
-
-    const weeklyTotals = { paid: 0, unpaid: 0 };
 
     return (
         <section id="risks" className="bg-white py-20 sm:py-24">

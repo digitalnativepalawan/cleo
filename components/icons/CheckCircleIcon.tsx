@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Currency } from '../App';
+import type { Currency } from '../../App';
 
 export const CheckCircleIcon: React.FC = () => {
     return (

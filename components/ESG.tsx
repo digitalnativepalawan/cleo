@@ -37,9 +37,10 @@ const ESGPillarCard = ({ icon, title, points }: { icon: React.ReactNode, title: 
 
 interface ESGProps {
     currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
 }
 
-const ESG = ({ currency }: ESGProps) => {
+const ESG: React.FC<ESGProps> = ({ weeklyTotals, currency }) => {
     const pillars = [
         {
             icon: <LeafIcon className="h-8 w-8" />,
@@ -72,8 +73,6 @@ const ESG = ({ currency }: ESGProps) => {
             ],
         },
     ];
-
-    const weeklyTotals = { paid: 0, unpaid: 0 };
 
     return (
         <section id="esg" className="relative bg-white py-20 sm:py-24 overflow-hidden">

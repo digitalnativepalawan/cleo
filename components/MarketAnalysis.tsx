@@ -144,16 +144,15 @@ const TargetDemographics: React.FC = () => {
                     </p>
                 </footer>
         </article>
-    );
+    )
 };
 
 interface MarketAnalysisProps {
     currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
 }
 
-const MarketAnalysis: React.FC<MarketAnalysisProps> = ({ currency }) => {
-    const weeklyTotals = { paid: 0, unpaid: 0 };
-
+const MarketAnalysis: React.FC<MarketAnalysisProps> = ({ weeklyTotals, currency }) => {
     return (
         <section id="market" className="bg-gray-50/50 py-20 sm:py-24">
             <div className="container mx-auto px-6">

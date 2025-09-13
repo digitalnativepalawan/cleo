@@ -41,7 +41,7 @@ const formatCurrencyRange = (phpMin: number, phpMax: number, currency: Currency)
     const maxFormatted = new Intl.NumberFormat('en-US', options).format(displayMax);
 
     return `${CURRENCY_SYMBOLS[currency]}${minFormatted}–${maxFormatted}${suffix}`;
-};
+}
 
 
 const WavePattern = () => (
@@ -55,9 +55,10 @@ const WavePattern = () => (
 
 interface ActionPlanProps {
     currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
 }
 
-const ActionPlan: React.FC<ActionPlanProps> = ({ currency }) => {
+const ActionPlan: React.FC<ActionPlanProps> = ({ currency, weeklyTotals }) => {
     const milestones = [
         {
             icon: <ClipboardCheckIcon />,
@@ -92,7 +93,7 @@ const ActionPlan: React.FC<ActionPlanProps> = ({ currency }) => {
         { icon: <HardHatIcon />, period: "2026", title: "Phase 1 Launch" },
         { icon: <HomeIcon className="h-8 w-8"/>, period: "2027", title: "Phase 2 (10+)" },
         { icon: <TrendingUpIcon />, period: "2028", title: "Maturity (25+)" },
-    ];
+    ]
 
     return (
         <section id="action-plan" className="relative bg-white py-20 sm:py-24 overflow-hidden">
@@ -101,6 +102,7 @@ const ActionPlan: React.FC<ActionPlanProps> = ({ currency }) => {
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Action Plan & Timeline</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Our strategic roadmap from inception to full-scale operation.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
 
                 {/* Desktop Horizontal Timeline */}
