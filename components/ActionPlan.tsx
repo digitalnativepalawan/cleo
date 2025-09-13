@@ -94,8 +94,6 @@ const ActionPlan: React.FC<ActionPlanProps> = ({ currency }) => {
         { icon: <TrendingUpIcon />, period: "2028", title: "Maturity (25+)" },
     ];
 
-    const weeklyTotals = { paid: 0, unpaid: 0 };
-
     return (
         <section id="action-plan" className="relative bg-white py-20 sm:py-24 overflow-hidden">
             <WavePattern />
@@ -103,7 +101,6 @@ const ActionPlan: React.FC<ActionPlanProps> = ({ currency }) => {
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Action Plan & Timeline</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Our strategic roadmap from inception to full-scale operation.</p>
-                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
 
                 {/* Desktop Horizontal Timeline */}
