@@ -68,7 +68,7 @@ const formatCurrencyRange = (phpMin: number, phpMax: number, currency: Currency)
     const maxFormatted = new Intl.NumberFormat('en-US', options).format(displayMax);
 
     return `${CURRENCY_SYMBOLS[currency]}${minFormatted}–${maxFormatted}${suffix}`;
-}
+};
 
 
 const InvestmentTierCard = ({ icon, title, amount, benefit }: { icon: React.ReactNode, title: string, amount: string, benefit: string }) => (
@@ -152,12 +152,13 @@ const ExitStrategy = () => {
             </ul>
         </div>
     );
-}
+};
 
 interface FundingInvestmentProps {
     currency: Currency;
 }
 
+const FundingInvestment: React.FC<FundingInvestmentProps> = ({ currency }) => {
     const tiers = [
         { icon: <CashIcon className="h-10 w-10"/>, title: "Pilot Investor", amount: formatCurrencyRange(2500000, 5000000, currency), benefit: "Structured as a Convertible Note or SAFE agreement, offering premium terms at the next funding stage." },
         { icon: <HomeIcon className="h-10 w-10"/>, title: "SIRV Villa Owner", amount: `${formatCurrencyValue(12500000, currency)}+`, benefit: "Acquire a titled eco-villa asset linked to the Special Investor's Resident Visa (SIRV) program." },
