@@ -16,6 +16,7 @@ import AccreditationBanner from './components/AccreditationBanner';
 import BlogSection from './components/BlogSection';
 import { INITIAL_PROJECTS, getProjectData, calculateAllProjectsWeeklyTotals } from './data/mockData';
 import type { ProjectData } from './types/portal';
+import "./hotfix.css";
 
 export interface BlogPost {
   id: string;
