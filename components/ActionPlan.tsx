@@ -55,10 +55,8 @@ const WavePattern = () => (
 
 interface ActionPlanProps {
     currency: Currency;
-    weeklyTotals: { paid: number; unpaid: number; };
 }
 
-const ActionPlan: React.FC<ActionPlanProps> = ({ currency, weeklyTotals }) => {
     const milestones = [
         {
             icon: <ClipboardCheckIcon />,
@@ -102,7 +100,6 @@ const ActionPlan: React.FC<ActionPlanProps> = ({ currency, weeklyTotals }) => {
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Action Plan & Timeline</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Our strategic roadmap from inception to full-scale operation.</p>
-                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
 
                 {/* Desktop Horizontal Timeline */}
