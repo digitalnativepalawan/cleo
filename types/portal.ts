@@ -7,7 +7,7 @@ export type TaskStatus = 'Pending' | 'Backlog' | 'In Progress' | 'Blocked' | 'Re
 export type TaskType = 'Design' | 'Site Prep' | 'Foundation' | 'Structure' | 'MEP' | 'Finish' | 'Inspection';
 export type LaborRateType = 'Daily' | 'Hourly' | 'Contract';
 export type MaterialCategory = 'Aggregates' | 'Timber' | 'Steel' | 'Electrical' | 'Plumbing' | 'Finishes' | 'Fixtures' | 'Other';
-export type MaterialUnit = 'pc' | 'box' | 'm' | 'sqm' | 'kg' | 'ton';
+export type MaterialUnit = 'pc' | 'box' | 'm' | 'sqm' | 'kg' | 'ton' | 'liter' | 'gallon';
 
 interface BaseItem {
     id: string;

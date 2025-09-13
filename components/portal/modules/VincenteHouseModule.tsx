@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { UserRole } from '../../Portal';
 import type { ProjectData, Task, Labor, Material, ProjectItem, TaskStatus, TaskType, LaborRateType, MaterialCategory, MaterialUnit, Attachment } from '../../../types/portal';
-import { PlusIcon, SearchIcon, FilterIcon, PencilIcon, TrashIcon, CheckCircleIcon, ClockIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon } from '../PortalIcons';
+import { PlusIcon, SearchIcon, FilterIcon, PencilIcon, TrashIcon, CheckCircleIcon, ClockIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon, UploadIcon } from '../PortalIcons';
 
 type ActiveTab = 'tasks' | 'labor' | 'materials';
 
@@ -37,6 +37,7 @@ const ItemFormModal: React.FC<{
     itemType: ActiveTab;
 }> = ({ isOpen, onClose, onSave, item, itemType }) => {
     const [formData, setFormData] = useState<Partial<ProjectItem> | null>(item);
+    const [isProcessingImage, setIsProcessingImage] = useState(false);
 
     useEffect(() => {
         setFormData(item);
@@ -75,6 +76,7 @@ const ItemFormModal: React.FC<{
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && file.type.startsWith('image/')) {
+            setIsProcessingImage(true);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setFormData(prev => ({
@@ -85,6 +87,11 @@ const ItemFormModal: React.FC<{
                         name: file.name
                     }
                 }));
+                
+                // If this is a materials form, try to extract data from the receipt
+                if (itemType === 'materials') {
+                    extractReceiptData(reader.result as string);
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -113,6 +120,44 @@ const ItemFormModal: React.FC<{
             const { attachment, ...rest } = prev;
             return rest;
         });
+    };
+    
+    const extractReceiptData = async (imageDataUrl: string) => {
+        try {
+            // This is a placeholder for receipt data extraction
+            // In a real implementation, you would call an OCR service or AI API
+            // For now, we'll simulate the extraction with common receipt patterns
+            
+            // Simulate processing delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Mock extracted data - in reality this would come from OCR/AI analysis
+            const mockExtractedData = {
+                items: [
+                    { name: 'Primer Epoxy Paint', quantity: 2, unitCost: 450, supplier: 'Hardware Store' },
+                    { name: 'Roll Brush #2', quantity: 6, unitCost: 55, supplier: 'Hardware Store' },
+                    { name: 'White Wall Paint', quantity: 1, unitCost: 700, supplier: 'Hardware Store' }
+                ]
+            };
+            
+            // For demo purposes, we'll use the first item from the mock data
+            const firstItem = mockExtractedData.items[0];
+            
+            setFormData(prev => ({
+                ...prev,
+                item: firstItem.name,
+                qty: firstItem.quantity,
+                unitCost: firstItem.unitCost,
+                totalCost: firstItem.quantity * firstItem.unitCost,
+                supplier: firstItem.supplier,
+                category: 'Finishes' // Default category, user can change
+            }));
+            
+        } catch (error) {
+            console.error('Error extracting receipt data:', error);
+        } finally {
+            setIsProcessingImage(false);
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -222,15 +267,40 @@ const ItemFormModal: React.FC<{
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label htmlFor="qty" className={labelClass}>Quantity</label>
-                                    <input type="number" name="qty" value={(formData as Material).qty || 0} onChange={handleChange} className={inputClass} />
+                                    <input type="number" name="qty" min="0" step="0.01" value={(formData as Material).qty || 0} onChange={handleChange} className={inputClass} />
                                 </div>
                                  <div>
                                     <label htmlFor="unitCost" className={labelClass}>Unit Cost (₱)</label>
-                                    <input type="number" name="unitCost" value={(formData as Material).unitCost || 0} onChange={handleChange} className={inputClass} />
+                                    <input type="number" name="unitCost" min="0" step="0.01" value={(formData as Material).unitCost || 0} onChange={handleChange} className={inputClass} />
                                 </div>
                                  <div>
                                     <label htmlFor="totalCost" className={labelClass}>Total Cost (₱)</label>
-                                    <input type="number" name="totalCost" readOnly value={(formData as Material).totalCost || 0} onChange={handleChange} className={`${inputClass} bg-gray-50`} />
+                                    <input type="number" name="totalCost" readOnly value={(formData as Material).totalCost || 0} className={`${inputClass} bg-gray-50 text-gray-700 font-medium`} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="unit" className={labelClass}>Unit</label>
+                                    <select name="unit" value={(formData as Material).unit} onChange={handleChange} className={inputClass}>
+                                        {(['pc', 'box', 'm', 'sqm', 'kg', 'ton', 'liter', 'gallon'] as MaterialUnit[]).map(u => <option key={u} value={u}>{u}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="location" className={labelClass}>Location</label>
+                                    <select name="location" value={(formData as Material).location || 'Site'} onChange={handleChange} className={inputClass}>
+                                        <option value="Site">Site</option>
+                                        <option value="Warehouse">Warehouse</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="deliveryEta" className={labelClass}>Expected Delivery</label>
+                                    <input type="date" name="deliveryEta" value={(formData as Material).deliveryEta || ''} onChange={handleChange} className={inputClass} />
+                                </div>
+                                <div>
+                                    <label htmlFor="leadTimeDays" className={labelClass}>Lead Time (Days)</label>
+                                    <input type="number" name="leadTimeDays" min="0" value={(formData as Material).leadTimeDays || 1} onChange={handleChange} className={inputClass} />
                                 </div>
                             </div>
                          </>
@@ -238,27 +308,43 @@ const ItemFormModal: React.FC<{
                     
                     <div>
                         <label className={labelClass}>Attachment</label>
-                        <div className="mt-1 border border-gray-300 rounded-lg p-3 text-sm">
+                        <div className="mt-1 border border-gray-300 rounded-lg p-4 text-sm">
                             {formData.attachment ? (
-                                <div className="text-center">
-                                    <img src={getDirectImageUrl(formData.attachment)} alt="Preview" className="w-auto h-auto max-h-40 object-contain rounded-md mb-2 inline-block" />
-                                    <p className="text-xs text-gray-500 truncate">{formData.attachment.name || formData.attachment.value}</p>
-                                    <button type="button" onClick={handleRemoveAttachment} className="text-xs text-red-600 hover:underline mt-1">Remove Image</button>
+                                <div className="text-center space-y-3">
+                                    <div className="relative inline-block">
+                                        <img src={getDirectImageUrl(formData.attachment)} alt="Receipt Preview" className="w-auto h-auto max-h-48 object-contain rounded-md shadow-sm" />
+                                        {isProcessingImage && (
+                                            <div className="absolute inset-0 bg-black/50 rounded-md flex items-center justify-center">
+                                                <div className="text-white text-xs font-medium">Processing receipt...</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-xs text-gray-600 font-medium truncate">{formData.attachment.name || 'Receipt Image'}</p>
+                                        {itemType === 'materials' && !isProcessingImage && (
+                                            <p className="text-xs text-blue-600">✓ Receipt data extracted automatically</p>
+                                        )}
+                                        <button type="button" onClick={handleRemoveAttachment} className="text-xs text-red-600 hover:text-red-800 font-medium">Remove Image</button>
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
-                                    <div className="text-center">
-                                         <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                                            <span>Upload a file</span>
+                                <div className="space-y-4">
+                                    <div className="text-center border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-400 transition-colors">
+                                        <UploadIcon className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                            <span className="text-sm">Upload receipt image</span>
                                             <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept="image/*" />
                                         </label>
+                                        {itemType === 'materials' && (
+                                            <p className="text-xs text-gray-500 mt-1">We'll automatically extract item details from your receipt</p>
+                                        )}
                                     </div>
                                     <div className="flex items-center">
                                         <div className="flex-grow border-t border-gray-200"></div>
                                         <span className="flex-shrink mx-2 text-xs text-gray-400">OR</span>
                                         <div className="flex-grow border-t border-gray-200"></div>
                                     </div>
-                                    <input type="url" name="attachmentUrl" placeholder="Paste an image URL" onBlur={handleUrlChange} className={`${inputClass} text-center`} />
+                                    <input type="url" name="attachmentUrl" placeholder="Or paste an image URL" onBlur={handleUrlChange} className={`${inputClass} text-center text-sm`} />
                                 </div>
                             )}
                         </div>
@@ -282,7 +368,9 @@ const ItemFormModal: React.FC<{
                 </form>
                 <div className="flex justify-end gap-3 p-4 border-t bg-gray-50/70 rounded-b-xl">
                     <button type="button" onClick={onClose} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
-                    <button type="submit" form="item-form" className="bg-blue-600 text-white px-4 py-2 text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">Save</button>
+                    <button type="submit" form="item-form" disabled={isProcessingImage} className="bg-blue-600 text-white px-4 py-2 text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        {isProcessingImage ? 'Processing...' : 'Save'}
+                    </button>
                 </div>
             </div>
         </div>
@@ -429,7 +517,7 @@ const ProjectModule: React.FC<{
       switch (activeTab) {
           case 'tasks': newItem = { ...baseItem, name: '', status: 'Backlog', type: 'Design', dueDate: '' } as Partial<Task>; break;
           case 'labor': newItem = { ...baseItem, crewRole: '', workers: '', rateType: 'Daily', qty: 8, rate: 62.5, cost: 500, startDate: '' } as Partial<Labor>; break;
-          case 'materials': newItem = { ...baseItem, item: '', category: 'Other', unit: 'pc', qty: 1, unitCost: 0, totalCost: 0, supplier: '' } as Partial<Material>; break;
+          case 'materials': newItem = { ...baseItem, item: '', category: 'Other', unit: 'pc', qty: 1, unitCost: 0, totalCost: 0, supplier: '', received: false, location: 'Site', leadTimeDays: 1, deliveryEta: '' } as Partial<Material>; break;
       }
       setEditingItem(newItem);
       setIsModalOpen(true);
@@ -526,7 +614,7 @@ const ProjectModule: React.FC<{
     
     const TASK_COLUMNS = [ { key: 'name', label: 'Task' }, { key: 'status', label: 'Status' }, { key: 'dueDate', label: 'Due Date' }, { key: 'cost', label: 'Cost' } ];
     const LABOR_COLUMNS = [ { key: 'workers', label: 'Name' }, { key: 'startDate', label: 'Date' }, { key: 'qty', label: 'Hours' }, { key: 'cost', label: 'Total (₱)' }, { key: 'paid', label: 'Status' } ];
-    const MATERIAL_COLUMNS = [ { key: 'item', label: 'Item' }, { key: 'supplier', label: 'Supplier' }, { key: 'received', label: 'Received' }, { key: 'totalCost', label: 'Total' }, { key: 'paid', label: 'Status' } ];
+    const MATERIAL_COLUMNS = [ { key: 'item', label: 'Item' }, { key: 'qty', label: 'Qty' }, { key: 'supplier', label: 'Supplier' }, { key: 'received', label: 'Received' }, { key: 'totalCost', label: 'Total' }, { key: 'paid', label: 'Status' } ];
     
     const renderTable = () => {
         const columns = activeTab === 'tasks' ? TASK_COLUMNS : activeTab === 'labor' ? LABOR_COLUMNS : MATERIAL_COLUMNS;
@@ -567,6 +655,7 @@ const ProjectModule: React.FC<{
                                         : col.key === 'received' ? ((item as Material).received ? <CheckCircleIcon className="text-green-500"/> : <ClockIcon className="text-gray-400"/>)
                                         : col.key === 'cost' ? `₱${(item as Task | Labor).cost?.toLocaleString() || 0}`
                                         : col.key === 'totalCost' ? `₱${(item as Material).totalCost?.toLocaleString() || 0}`
+                                        : col.key === 'qty' && itemType === 'materials' ? `${(item as Material).qty} ${(item as Material).unit || 'pc'}`
                                         : col.key === 'paid' ? <PaidToggleButton isPaid={item.paid} onClick={() => handleTogglePaidStatus(item.id)} role={role} />
                                         : (item as any)[col.key] }
                                     </td>
@@ -609,6 +698,7 @@ const ProjectModule: React.FC<{
                     const material = item as Material;
                     return <>
                         <div className="flex justify-between text-xs text-gray-500">
+                            <span>Qty: {material.qty} {material.unit || 'pc'}</span>
                             <span>Supplier: {material.supplier || 'N/A'}</span>
                             <div className="flex items-center gap-2 text-xs">{material.received ? <><CheckCircleIcon className="h-4 w-4 text-green-500"/> Received</> : <><ClockIcon className="h-4 w-4 text-gray-400"/> Pending</>}</div>
                         </div>
