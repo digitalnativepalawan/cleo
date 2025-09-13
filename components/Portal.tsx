@@ -3,18 +3,21 @@ import { ProjectsWorkspace } from './ProjectManagement';
 import { KeyIcon } from './icons/KeyIcon';
 import { XIcon } from './icons/XIcon';
 import type { BlogPost } from '../App';
+import type { ProjectData } from '../types/portal';
 
 interface PortalProps {
     isOpen: boolean;
     onClose: () => void;
     posts: BlogPost[];
     setPosts: React.Dispatch<React.SetStateAction<BlogPost[]>>;
+    projectsData: Record<string, ProjectData>;
+    setProjectsData: React.Dispatch<React.SetStateAction<Record<string, ProjectData>>>;
 }
 
 type PortalStep = 'role-select' | 'workspace';
 export type UserRole = 'admin' | 'investor';
 
-const Portal: React.FC<PortalProps> = ({ isOpen, onClose, posts, setPosts }) => {
+const Portal: React.FC<PortalProps> = ({ isOpen, onClose, posts, setPosts, projectsData, setProjectsData }) => {
     const [step, setStep] = useState<PortalStep>('role-select');
     const [role, setRole] = useState<UserRole | null>(null);
 
@@ -76,6 +79,8 @@ const Portal: React.FC<PortalProps> = ({ isOpen, onClose, posts, setPosts }) => 
                         onSignOut={onClose} 
                         blogPosts={posts}
                         setBlogPosts={setPosts}
+                        projectsData={projectsData}
+                        setProjectsData={setProjectsData}
                     />
                 )}
             </div>

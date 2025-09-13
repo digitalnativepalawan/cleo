@@ -2,6 +2,8 @@ import React from 'react';
 import { OfficeBuildingIcon } from './icons/OfficeBuildingIcon';
 import { TrendingUpIcon } from './icons/TrendingUpIcon';
 import { HomeIcon } from './icons/HomeIcon';
+import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
+import type { Currency } from '../App';
 
 const PillarCard = ({ icon, title, points, highlight = false }: { icon: React.ReactNode, title: string, points: string[], highlight?: boolean }) => (
     <div className={`flex-1 ${highlight ? 'bg-blue-50/60' : 'bg-white'} p-8 rounded-xl shadow-md hover:shadow-lg border border-gray-200/50 transition-all duration-300 flex flex-col h-full`}>
@@ -24,14 +26,19 @@ const PillarCard = ({ icon, title, points, highlight = false }: { icon: React.Re
     </div>
 );
 
+interface BusinessModelProps {
+    currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
+}
 
-const BusinessModel: React.FC = () => {
+const BusinessModel: React.FC<BusinessModelProps> = ({ weeklyTotals, currency }) => {
     return (
         <section id="model" className="bg-white py-20 sm:py-24">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Business Model & Revenue Streams</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-4xl mx-auto">A balanced alliance combining proven land authority, operational excellence, and vertical expansion.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 
                 <div className="max-w-7xl mx-auto">

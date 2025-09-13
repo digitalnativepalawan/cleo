@@ -6,6 +6,7 @@ import { HandshakeIcon } from './icons/HandshakeIcon';
 import { OfficeBuildingIcon } from './icons/OfficeBuildingIcon';
 import { RefreshIcon } from './icons/RefreshIcon';
 import type { Currency } from '../App';
+import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
 
 const EXCHANGE_RATES: Record<Currency, number> = { PHP: 1, USD: 1 / 58, EUR: 1 / 63 };
 const CURRENCY_SYMBOLS: Record<Currency, string> = { PHP: '₱', USD: '$', EUR: '€' };
@@ -153,7 +154,12 @@ const ExitStrategy = () => {
     );
 }
 
-const FundingInvestment: React.FC<{ currency: Currency }> = ({ currency }) => {
+interface FundingInvestmentProps {
+    currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
+}
+
+const FundingInvestment: React.FC<FundingInvestmentProps> = ({ currency, weeklyTotals }) => {
     const tiers = [
         { icon: <CashIcon className="h-10 w-10"/>, title: "Pilot Investor", amount: formatCurrencyRange(2500000, 5000000, currency), benefit: "Structured as a Convertible Note or SAFE agreement, offering premium terms at the next funding stage." },
         { icon: <HomeIcon className="h-10 w-10"/>, title: "SIRV Villa Owner", amount: `${formatCurrencyValue(12500000, currency)}+`, benefit: "Acquire a titled eco-villa asset linked to the Special Investor's Resident Visa (SIRV) program." },
@@ -166,6 +172,7 @@ const FundingInvestment: React.FC<{ currency: Currency }> = ({ currency }) => {
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Funding & Investment Opportunity</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Join us in capitalizing on Palawan's growth. We offer multiple tiers for strategic partnership.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
 
                 {/* Investment Tiers */}

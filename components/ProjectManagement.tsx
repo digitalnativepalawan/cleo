@@ -6,11 +6,12 @@ import {
     DownloadIcon, ArchiveIcon, XIcon, MenuIcon
 } from './portal/PortalIcons';
 
-import { INITIAL_PROJECTS } from '../data/mockData';
+import { INITIAL_PROJECTS, calculateWeeklyTotals, calculateAllProjectsWeeklyTotals } from '../data/mockData';
 import MainDashboard from './portal/modules/MainDashboard';
 import ProjectModule from './portal/modules/VincenteHouseModule'; // Using VincenteHouseModule as the unified module
 import BlogManagementModule from './BlogManagementModule';
 import type { BlogPost } from '../App';
+import type { ProjectData } from '../types/portal';
 
 // --- UI COMPONENTS ---
 
@@ -97,19 +98,41 @@ export const ProjectsWorkspace: React.FC<{
     onSignOut: () => void;
     blogPosts: BlogPost[];
     setBlogPosts: React.Dispatch<React.SetStateAction<BlogPost[]>>;
-}> = ({ role, onSignOut, blogPosts, setBlogPosts }) => {
+    projectsData: Record<string, ProjectData>;
+    setProjectsData: React.Dispatch<React.SetStateAction<Record<string, ProjectData>>>;
+}> = ({ role, onSignOut, blogPosts, setBlogPosts, projectsData, setProjectsData }) => {
     const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const activeProject = useMemo(() => INITIAL_PROJECTS.find(p => p.id === activeProjectId), [activeProjectId]);
+    const activeProjectData = activeProjectId ? projectsData[activeProjectId] : null;
+
+    const weeklyTotals = useMemo(() => {
+        if (!activeProjectId) { // Dashboard view
+            return calculateAllProjectsWeeklyTotals(projectsData);
+        }
+        if (projectsData[activeProjectId]) {
+            return calculateWeeklyTotals(projectsData[activeProjectId]);
+        }
+        return { paid: 0, unpaid: 0 };
+    }, [activeProjectId, projectsData]);
 
     const showToast = (msg: string) => {
         // In a real app, this would trigger a toast notification system.
         console.log(`TOAST: ${msg}`);
     };
 
+    const handleUpdateProjectData = (updatedData: ProjectData) => {
+        if (activeProjectId) {
+            setProjectsData(prev => ({
+                ...prev,
+                [activeProjectId]: updatedData
+            }));
+        }
+    };
+
     const renderModule = () => {
-        if (!activeProject) {
+        if (!activeProject || !activeProjectData) {
             return <MainDashboard onProjectSelect={setActiveProjectId} />;
         }
         
@@ -118,7 +141,13 @@ export const ProjectsWorkspace: React.FC<{
         }
         
         // All other projects use the unified ProjectModule
-        return <ProjectModule project={activeProject} role={role} showToast={showToast} />;
+        return <ProjectModule
+            project={activeProject}
+            role={role}
+            showToast={showToast}
+            projectData={activeProjectData}
+            onUpdateProjectData={handleUpdateProjectData}
+        />;
     };
     
     return (
@@ -186,7 +215,19 @@ export const ProjectsWorkspace: React.FC<{
                         <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-gray-500 hover:text-gray-800" aria-label="Open projects menu">
                             <MenuIcon className="h-6 w-6" />
                         </button>
-                        <h1 className="text-xl font-semibold text-gray-900">{activeProject?.name || 'Dashboard'}</h1>
+                        <div>
+                            <h1 className="text-xl font-semibold text-gray-900">{activeProject?.name || 'Dashboard'}</h1>
+                            <div className="flex items-center gap-4 text-xs mt-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="font-medium text-gray-500">Paid (wk):</span>
+                                    <span className="font-semibold text-green-600">₱{weeklyTotals.paid.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="font-medium text-gray-500">Unpaid (wk):</span>
+                                    <span className="font-semibold text-red-600">₱{weeklyTotals.unpaid.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </header>
                 <div className="flex-1 overflow-y-auto">

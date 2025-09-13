@@ -8,6 +8,7 @@ import { IntegratedVerticalsIcon } from './icons/IntegratedVerticalsIcon';
 import { DocumentIcon } from './icons/DocumentIcon';
 import { HomeIcon } from './icons/HomeIcon';
 import { LeafIcon } from './icons/LeafIcon';
+import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
 
 
 const EXCHANGE_RATES: Record<Currency, number> = { PHP: 1, USD: 1 / 58, EUR: 1 / 63 };
@@ -39,8 +40,12 @@ const formatCurrencyValue = (phpValue: number, currency: Currency): string => {
     return `${CURRENCY_SYMBOLS[currency]}${formatter.format(displayValue)}${suffix}`;
 };
 
+interface ExecutiveSummaryProps {
+    currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
+}
 
-const ExecutiveSummary: React.FC<{ currency: Currency }> = ({ currency }) => {
+const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ currency, weeklyTotals }) => {
     const missionVisionPoints = [
         { title: "Establish Palawan’s Flagship Destination", description: "Not just a resort—a replicable ecosystem blending tourism, agriculture, and infrastructure." },
         { title: "Inclusive Growth & ESG Commitment", description: "Partnering with local communities and cooperatives to build supply chains (farm-to-table produce, construction hardware)." },
@@ -92,6 +97,7 @@ const ExecutiveSummary: React.FC<{ currency: Currency }> = ({ currency }) => {
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Executive Summary</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">A high-level overview of our strategic direction and foundational strengths.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
                     {/* Left Column: Mission & Vision */}

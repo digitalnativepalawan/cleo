@@ -2,6 +2,8 @@ import React from 'react';
 import { LeafIcon } from './icons/LeafIcon';
 import { UsersGroupIcon } from './icons/UsersGroupIcon';
 import { ShieldCheckIcon } from './icons/ShieldCheckIcon';
+import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
+import type { Currency } from '../App';
 
 const WavePattern = () => (
     <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
@@ -33,7 +35,12 @@ const ESGPillarCard = ({ icon, title, points }: { icon: React.ReactNode, title: 
     </div>
 );
 
-const ESG: React.FC = () => {
+interface ESGProps {
+    currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
+}
+
+const ESG: React.FC<ESGProps> = ({ weeklyTotals, currency }) => {
     const pillars = [
         {
             icon: <LeafIcon className="h-8 w-8" />,
@@ -73,6 +80,7 @@ const ESG: React.FC = () => {
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Environmental, Social, & Governance (ESG) Commitment</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-3xl mx-auto">Our framework for sustainable growth, community partnership, and responsible investment.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
                     {pillars.map(pillar => (

@@ -3,6 +3,8 @@ import { ScaleIcon } from './icons/ScaleIcon';
 import { CraneIcon } from './icons/CraneIcon';
 import { GlobeIcon } from './icons/GlobeIcon';
 import { CurrencyIcon } from './icons/CurrencyIcon';
+import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
+import type { Currency } from '../App';
 
 const RiskCard = ({ icon, title, mitigation }: { icon: React.ReactNode, title: string, mitigation: string }) => (
     <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1 h-full">
@@ -14,7 +16,12 @@ const RiskCard = ({ icon, title, mitigation }: { icon: React.ReactNode, title: s
     </div>
 );
 
-const RiskAssessment: React.FC = () => {
+interface RiskAssessmentProps {
+    currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
+}
+
+const RiskAssessment: React.FC<RiskAssessmentProps> = ({ weeklyTotals, currency }) => {
     const risks = [
         {
             icon: <ScaleIcon />,
@@ -44,6 +51,7 @@ const RiskAssessment: React.FC = () => {
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Risk Assessment & Mitigation</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">A proactive approach to identifying and managing potential challenges.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
                     {risks.map(risk => (

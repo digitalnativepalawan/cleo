@@ -58,3 +58,10 @@ export interface Material extends BaseItem {
 }
 
 export type ProjectItem = Task | Labor | Material;
+
+// Fix: Moved ProjectData interface here to be exported and used across the application.
+export interface ProjectData {
+  tasks: Task[];
+  labor: Labor[];
+  materials: Material[];
+}

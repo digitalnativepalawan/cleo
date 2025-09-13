@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, ReactNode } from 'react';
+import React, { useState, useRef, useEffect, ReactNode, useMemo } from 'react';
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import ExecutiveSummary from './components/ExecutiveSummary';
@@ -14,6 +14,8 @@ import Footer from './components/Footer';
 import Portal from './components/Portal';
 import AccreditationBanner from './components/AccreditationBanner';
 import BlogSection from './components/BlogSection';
+import { INITIAL_PROJECTS, getProjectData, calculateAllProjectsWeeklyTotals } from './data/mockData';
+import type { ProjectData } from './types/portal';
 
 export interface BlogPost {
   id: string;
@@ -108,6 +110,32 @@ function App() {
     }
   });
 
+  const [projectsData, setProjectsData] = useState<Record<string, ProjectData>>(() => {
+    try {
+      const savedData = localStorage.getItem('projectsData');
+      if (savedData) {
+        return JSON.parse(savedData);
+      }
+      const initialData: Record<string, ProjectData> = {};
+      INITIAL_PROJECTS.forEach(project => {
+          initialData[project.id] = getProjectData(project.id);
+      });
+      return initialData;
+    } catch (error) {
+      console.error("Error reading project data from localStorage", error);
+      const initialData: Record<string, ProjectData> = {};
+      INITIAL_PROJECTS.forEach(project => {
+          initialData[project.id] = getProjectData(project.id);
+      });
+      return initialData;
+    }
+  });
+
+  const allProjectsWeeklyTotals = useMemo(() =>
+    calculateAllProjectsWeeklyTotals(projectsData),
+    [projectsData]
+  );
+
   useEffect(() => {
     try {
       localStorage.setItem('blogPosts', JSON.stringify(blogPosts));
@@ -115,6 +143,14 @@ function App() {
       console.error("Error saving blog posts to localStorage", error);
     }
   }, [blogPosts]);
+  
+  useEffect(() => {
+    try {
+        localStorage.setItem('projectsData', JSON.stringify(projectsData));
+    } catch (error) {
+        console.error("Error saving project data to localStorage", error);
+    }
+  }, [projectsData]);
 
   useEffect(() => {
     if (isPortalOpen) {
@@ -132,28 +168,28 @@ function App() {
           <AccreditationBanner />
         </AnimatedSection>
         <AnimatedSection>
-          <ExecutiveSummary currency={currency} />
+          <ExecutiveSummary currency={currency} weeklyTotals={allProjectsWeeklyTotals} />
         </AnimatedSection>
         <AnimatedSection>
-          <MarketAnalysis />
+          <MarketAnalysis weeklyTotals={allProjectsWeeklyTotals} currency={currency} />
         </AnimatedSection>
         <AnimatedSection>
-          <BusinessModel />
+          <BusinessModel weeklyTotals={allProjectsWeeklyTotals} currency={currency} />
         </AnimatedSection>
         <AnimatedSection>
-          <FinancialProjections currency={currency} />
+          <FinancialProjections currency={currency} weeklyTotals={allProjectsWeeklyTotals} />
         </AnimatedSection>
         <AnimatedSection>
-          <RiskAssessment />
+          <RiskAssessment weeklyTotals={allProjectsWeeklyTotals} currency={currency} />
         </AnimatedSection>
         <AnimatedSection>
-          <ActionPlan currency={currency} />
+          <ActionPlan currency={currency} weeklyTotals={allProjectsWeeklyTotals} />
         </AnimatedSection>
         <AnimatedSection>
-          <FundingInvestment currency={currency} />
+          <FundingInvestment currency={currency} weeklyTotals={allProjectsWeeklyTotals} />
         </AnimatedSection>
         <AnimatedSection>
-          <ESG />
+          <ESG weeklyTotals={allProjectsWeeklyTotals} currency={currency} />
         </AnimatedSection>
         <AnimatedSection>
          <Contact />
@@ -181,6 +217,8 @@ function App() {
         onClose={() => setIsPortalOpen(false)}
         posts={blogPosts}
         setPosts={setBlogPosts}
+        projectsData={projectsData}
+        setProjectsData={setProjectsData}
       />
     </div>
   );

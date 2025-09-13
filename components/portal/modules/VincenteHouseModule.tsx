@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { UserRole } from '../../Portal';
-import { getProjectData } from '../../../data/mockData';
-import type { Task, Labor, Material, ProjectItem, TaskStatus, TaskType, LaborRateType, MaterialCategory, MaterialUnit, Attachment } from '../../../types/portal';
+import type { ProjectData, Task, Labor, Material, ProjectItem, TaskStatus, TaskType, LaborRateType, MaterialCategory, MaterialUnit, Attachment } from '../../../types/portal';
 import { PlusIcon, SearchIcon, FilterIcon, PencilIcon, TrashIcon, CheckCircleIcon, ClockIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon } from '../PortalIcons';
 
 type ActiveTab = 'tasks' | 'labor' | 'materials';
@@ -341,14 +340,14 @@ const ProjectToolbar: React.FC<{
                 <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input type="text" placeholder="Search..." className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white focus:border-blue-500" />
             </div>
-            <button className="w-full sm:w-auto flex justify-center items-center gap-1.5 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+            <button className="w-full sm:w-auto flex-shrink-0 flex justify-center items-center gap-1.5 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap">
                 <FilterIcon className="h-4 w-4" />
                 <span>Filter</span>
             </button>
             <button 
                 onClick={onAdd} 
                 disabled={role !== 'admin'}
-                className="w-full sm:w-auto flex justify-center items-center gap-1.5 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap"
+                className="w-full sm:w-auto flex-shrink-0 flex justify-center items-center gap-1.5 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap"
             >
                 <PlusIcon />
                 <span>Add {itemNoun}</span>
@@ -365,11 +364,11 @@ const ProjectModule: React.FC<{
     project: { id: string; name: string };
     role: UserRole;
     showToast: (msg: string) => void;
-}> = ({ project, role, showToast }) => {
+    projectData: ProjectData;
+    onUpdateProjectData: (updatedData: ProjectData) => void;
+}> = ({ project, role, showToast, projectData, onUpdateProjectData }) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('tasks');
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [labor, setLabor] = useState<Labor[]>([]);
-    const [materials, setMaterials] = useState<Material[]>([]);
+    const { tasks, labor, materials } = projectData;
     
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<Partial<ProjectItem> | null>(null);
@@ -377,11 +376,7 @@ const ProjectModule: React.FC<{
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' } | null>({ key: 'name', direction: 'ascending'});
     
     useEffect(() => {
-        const projectData = getProjectData(project.id);
-        setTasks(projectData.tasks);
-        setLabor(projectData.labor);
-        setMaterials(projectData.materials);
-        handleTabChange('tasks'); // Reset to tasks tab on project change
+        handleTabChange('tasks');
     }, [project.id]);
 
 
@@ -455,32 +450,36 @@ const ProjectModule: React.FC<{
             return;
         }
         if (window.confirm('Are you sure you want to delete this item?')) {
+            let updatedData = { ...projectData };
             switch (activeTab) {
-                case 'tasks': setTasks(prev => prev.filter(t => t.id !== itemId)); break;
-                case 'labor': setLabor(prev => prev.filter(l => l.id !== itemId)); break;
-                case 'materials': setMaterials(prev => prev.filter(m => m.id !== itemId)); break;
+                case 'tasks': updatedData.tasks = tasks.filter(t => t.id !== itemId); break;
+                case 'labor': updatedData.labor = labor.filter(l => l.id !== itemId); break;
+                case 'materials': updatedData.materials = materials.filter(m => m.id !== itemId); break;
             }
+            onUpdateProjectData(updatedData);
             showToast('Item deleted.');
         }
     };
 
     const handleSave = (itemToSave: Partial<ProjectItem>) => {
+        let updatedData = { ...projectData };
         if (itemToSave.id) { // Update
             switch (activeTab) {
-                case 'tasks': setTasks(p => p.map(i => i.id === itemToSave.id ? itemToSave as Task : i)); break;
-                case 'labor': setLabor(p => p.map(i => i.id === itemToSave.id ? itemToSave as Labor : i)); break;
-                case 'materials': setMaterials(p => p.map(i => i.id === itemToSave.id ? itemToSave as Material : i)); break;
+                case 'tasks': updatedData.tasks = tasks.map(i => i.id === itemToSave.id ? itemToSave as Task : i); break;
+                case 'labor': updatedData.labor = labor.map(i => i.id === itemToSave.id ? itemToSave as Labor : i); break;
+                case 'materials': updatedData.materials = materials.map(i => i.id === itemToSave.id ? itemToSave as Material : i); break;
             }
             showToast('Item updated.');
         } else { // Create
             const newItem = { ...itemToSave, id: simpleId() };
              switch (activeTab) {
-                case 'tasks': setTasks(p => [...p, newItem as Task]); break;
-                case 'labor': setLabor(p => [...p, newItem as Labor]); break;
-                case 'materials': setMaterials(p => [...p, newItem as Material]); break;
+                case 'tasks': updatedData.tasks = [...tasks, newItem as Task]; break;
+                case 'labor': updatedData.labor = [...labor, newItem as Labor]; break;
+                case 'materials': updatedData.materials = [...materials, newItem as Material]; break;
             }
             showToast('Item added.');
         }
+        onUpdateProjectData(updatedData);
         setIsModalOpen(false);
         setEditingItem(null);
     };
@@ -494,12 +493,14 @@ const ProjectModule: React.FC<{
         const updater = <T extends {id: string; paid: boolean;}>(items: T[]) => items.map(item => 
             item.id === itemId ? { ...item, paid: !item.paid } : item
         );
-    
+        
+        let updatedData = { ...projectData };
         if (activeTab === 'labor') {
-            setLabor(updater);
+            updatedData.labor = updater(labor);
         } else if (activeTab === 'materials') {
-            setMaterials(updater);
+            updatedData.materials = updater(materials);
         }
+        onUpdateProjectData(updatedData);
         showToast('Paid status updated.');
     };
 

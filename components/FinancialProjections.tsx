@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Currency } from '../App';
 import { GrowthIcon } from './icons/GrowthIcon';
+import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
 
 const EXCHANGE_RATES: Record<Currency, number> = { PHP: 1, USD: 1 / 58, EUR: 1 / 63 };
 const CURRENCY_SYMBOLS: Record<Currency, string> = { PHP: '₱', USD: '$', EUR: '€' };
@@ -169,8 +170,12 @@ const VillaExpansionTable: React.FC<{currency: Currency}> = ({ currency }) => {
     );
 };
 
+interface FinancialProjectionsProps {
+    currency: Currency;
+    weeklyTotals: { paid: number; unpaid: number; };
+}
 
-const FinancialProjections: React.FC<{ currency: Currency }> = ({ currency }) => {
+const FinancialProjections: React.FC<FinancialProjectionsProps> = ({ currency, weeklyTotals }) => {
     const kpis = [
         { value: "70%", label: "Target Occupancy", sublabel: "Year 3 Average" },
         { value: formatCurrencyValue(12000, currency), label: "Average Daily Rate", sublabel: "Peak Season Estimate" },
@@ -184,6 +189,7 @@ const FinancialProjections: React.FC<{ currency: Currency }> = ({ currency }) =>
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Financial Projections</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Scalable, resilient growth model with strong underlying assets.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-16">

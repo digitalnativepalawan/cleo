@@ -1,12 +1,9 @@
-import type { Task, Labor, Material, Attachment } from '../types/portal';
+// Fix: Import ProjectData from the central types file.
+import type { Task, Labor, Material, Attachment, ProjectData } from '../types/portal';
 
 const simpleId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-export interface ProjectData {
-  tasks: Task[];
-  labor: Labor[];
-  materials: Material[];
-}
+// Fix: Removed ProjectData interface as it has been moved to types/portal.ts
 
 const vincenteTasks: Task[] = [
     { id: simpleId(), projectId: 'project-vincente', name: 'install hardiflex then paint white', type: 'Finish', status: 'In Progress', owner: '', startDate: '', dueDate: '2025-09-02', estHours: 0, cost: 0, tags: [], order: 0, notes: '', paid: false },
@@ -19,17 +16,34 @@ const vincenteTasks: Task[] = [
     { id: simpleId(), projectId: 'project-vincente', name: 'trim coco trees', type: 'Site Prep', status: 'Done', owner: '', startDate: '', dueDate: '2025-09-01', estHours: 0, cost: 0, tags: [], order: 7, notes: '', paid: true },
     { id: simpleId(), projectId: 'project-vincente', name: 'fix leak in roof', type: 'Structure', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-30', estHours: 0, cost: 0, tags: [], order: 8, notes: '', paid: true },
     { id: simpleId(), projectId: 'project-vincente', name: 'clear clean front property', type: 'Site Prep', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-30', estHours: 0, cost: 0, tags: [], order: 9, notes: '', paid: true },
-    { id: simpleId(), projectId: 'project-vincente', name: 'door sealant', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-29', estHours: 0, cost: 0, tags: [], order: 10, notes: '', paid: true },
-    { id: simpleId(), projectId: 'project-vincente', name: 'door sealant', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-29', estHours: 0, cost: 0, tags: [], order: 11, notes: '', paid: true },
+    { id: simpleId(), projectId: 'project-vincente', name: 'Front door sealant', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-29', estHours: 0, cost: 0, tags: [], order: 10, notes: '', paid: true },
+    { id: simpleId(), projectId: 'project-vincente', name: 'Back door sealant', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-29', estHours: 0, cost: 0, tags: [], order: 11, notes: '', paid: true },
     { id: simpleId(), projectId: 'project-vincente', name: 'paint/sand metal', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-28', estHours: 0, cost: 0, tags: [], order: 12, notes: '', paid: true },
     { id: simpleId(), projectId: 'project-vincente', name: 'clean metal ceiling', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-28', estHours: 0, cost: 0, tags: [], order: 13, notes: '', paid: true },
-    { id: simpleId(), projectId: 'project-vincente', name: 'door padding', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-26', estHours: 0, cost: 0, tags: [], order: 14, notes: '', paid: true },
-    { id: simpleId(), projectId: 'project-vincente', name: 'door padding', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-26', estHours: 0, cost: 0, tags: [], order: 15, notes: '', paid: true },
-    { id: simpleId(), projectId: 'project-vincente', name: 'window seal', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-25', estHours: 0, cost: 0, tags: [], order: 16, notes: '', paid: true },
-    { id: simpleId(), projectId: 'project-vincente', name: 'window seal', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-25', estHours: 0, cost: 0, tags: [], order: 17, notes: '', paid: true },
+    { id: simpleId(), projectId: 'project-vincente', name: 'Front door padding', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-26', estHours: 0, cost: 0, tags: [], order: 14, notes: '', paid: true },
+    { id: simpleId(), projectId: 'project-vincente', name: 'Back door padding', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-26', estHours: 0, cost: 0, tags: [], order: 15, notes: '', paid: true },
+    { id: simpleId(), projectId: 'project-vincente', name: 'Living room window seal', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-25', estHours: 0, cost: 0, tags: [], order: 16, notes: '', paid: true },
+    { id: simpleId(), projectId: 'project-vincente', name: 'Bedroom window seal', type: 'Finish', status: 'Done', owner: '', startDate: '', dueDate: '2025-08-25', estHours: 0, cost: 0, tags: [], order: 17, notes: '', paid: true },
 ];
 
 const vincenteLabor: Labor[] = [
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Boyy', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-08', endDate: '2025-09-08', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Boyy', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-09', endDate: '2025-09-09', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Boyy', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-10', endDate: '2025-09-10', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Boyy', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-11', endDate: '2025-09-11', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Boyy', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-12', endDate: '2025-09-12', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'JR', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-08', endDate: '2025-09-08', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'JR', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-09', endDate: '2025-09-09', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'JR', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-10', endDate: '2025-09-10', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'JR', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-11', endDate: '2025-09-11', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'JR', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-12', endDate: '2025-09-12', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'JR', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-13', endDate: '2025-09-13', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Leo', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-10', endDate: '2025-09-10', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Leo', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-11', endDate: '2025-09-11', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Leo', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-12', endDate: '2025-09-12', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Leo', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-13', endDate: '2025-09-13', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Jerry', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-12', endDate: '2025-09-12', notes: '', paid: false },
+    { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Jerry', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-09-13', endDate: '2025-09-13', notes: '', paid: false },
     { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'JR', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-08-25', endDate: '2025-08-25', notes: '', paid: true },
     { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'Leo', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-08-25', endDate: '2025-08-25', notes: '', paid: true },
     { id: simpleId(), projectId: 'project-vincente', crewRole: 'General Laborer', workers: 'JR', rateType: 'Hourly', rate: 62.5, qty: 8, cost: 500, supplier: 'Local', startDate: '2025-08-26', endDate: '2025-08-26', notes: '', paid: true },
@@ -101,3 +115,70 @@ export const INITIAL_PROJECTS = [
     { id: 'project-bir', name: 'BIR Checklist' },
     { id: 'project-blog', name: 'Blog Management' },
 ];
+
+// --- WEEKLY TOTALS CALCULATION ---
+
+const getWeekRange = (date: Date) => {
+    const day = date.getDay(); // 0 (Sun) - 6 (Sat)
+    const diffToMonday = day === 0 ? -6 : 1 - day; // Adjust for Sunday
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    return { start: monday, end: sunday };
+};
+
+interface WeeklyTotals {
+  paid: number;
+  unpaid: number;
+}
+
+export const calculateWeeklyTotals = (projectData: ProjectData): WeeklyTotals => {
+    if (!projectData) return { paid: 0, unpaid: 0 };
+    const { start, end } = getWeekRange(new Date());
+    let paid = 0;
+    let unpaid = 0;
+
+    const items = [...(projectData.labor || []), ...(projectData.materials || [])];
+
+    for (const item of items) {
+        const itemDateStr = 'startDate' in item ? item.startDate : ('deliveryEta' in item ? item.deliveryEta : undefined);
+        if (!itemDateStr) continue;
+
+        try {
+            const [year, month, day] = itemDateStr.split('-').map(Number);
+            const localItemDate = new Date(year, month - 1, day);
+            
+            if (isNaN(localItemDate.getTime())) continue;
+
+            if (localItemDate >= start && localItemDate <= end) {
+                const cost = 'cost' in item ? item.cost : ('totalCost' in item ? item.totalCost : 0);
+                if (item.paid) {
+                    paid += cost;
+                } else {
+                    unpaid += cost;
+                }
+            }
+        } catch(e) {
+            console.error("Invalid date format for item", item);
+        }
+    }
+    return { paid, unpaid };
+};
+
+export const calculateAllProjectsWeeklyTotals = (projectsData: Record<string, ProjectData>): WeeklyTotals => {
+    let totalPaid = 0;
+    let totalUnpaid = 0;
+    for (const projectId in projectsData) {
+        if (projectsData[projectId]) {
+            const { paid, unpaid } = calculateWeeklyTotals(projectsData[projectId]);
+            totalPaid += paid;
+            totalUnpaid += unpaid;
+        }
+    }
+    return { paid: totalPaid, unpaid: totalUnpaid };
+};
