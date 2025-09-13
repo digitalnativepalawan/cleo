@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import type { UserRole } from '../../Portal';
 import type { Task, Labor, Material, ProjectData, TaskStatus, TaskType, LaborRateType, MaterialCategory, MaterialUnit } from '../../../types/portal';
-import {
-    PlusIcon, PencilIcon, TrashIcon, XIcon, SearchIcon, FilterIcon,
-    CalendarIcon, DotsVerticalIcon, CheckCircleIcon, ClockIcon, BanIcon,
-    TableIcon, ViewGridIcon, UploadIcon, ImageIcon, DriveIcon
+import { 
+    PlusIcon, PencilIcon, TrashIcon, EyeIcon, SearchIcon, FilterIcon, 
+    CalendarIcon, DotsVerticalIcon, ChevronDownIcon, XIcon, UploadIcon,
+    TableIcon, ViewGridIcon
 } from '../PortalIcons';
 
 // Status color mappings
@@ -268,11 +268,11 @@ const MaterialModal: React.FC<{
             attachment: { type: 'local', value: fileUrl, name: file.name }
         }));
 
-        // Mock receipt data extraction
+            // Create preview URL
         if (file.type.startsWith('image/')) {
             setIsProcessing(true);
             
-            // Simulate processing delay
+            // Mock data extraction (in real app, this would call OCR service)
             setTimeout(() => {
                 // Mock extracted data from receipt
                 const extractedData = {
