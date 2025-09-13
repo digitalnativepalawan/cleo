@@ -44,8 +44,9 @@ interface ExecutiveSummaryProps {
     currency: Currency;
 }
 
+const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ currency }) => {
     const missionVisionPoints = [
-        { title: "Establish Palawan’s Flagship Destination", description: "Not just a resort—a replicable ecosystem blending tourism, agriculture, and infrastructure." },
+        { title: "Establish Palawan's Flagship Destination", description: "Not just a resort—a replicable ecosystem blending tourism, agriculture, and infrastructure." },
         { title: "Inclusive Growth & ESG Commitment", description: "Partnering with local communities and cooperatives to build supply chains (farm-to-table produce, construction hardware)." },
         { title: "Resilient Business Model", description: "Diversified streams—eco-villas, agri sales, hardware depots, and digital securities—reducing risk exposure to single-market downturns." },
         { title: "Scalable & Replicable", description: "The Lumambong Beach model becomes the template for future expansions in Bohol, Siargao, and beyond." }
@@ -76,7 +77,7 @@ interface ExecutiveSummaryProps {
         {
             icon: <SolarPanelIcon className="h-8 w-8" />,
             title: "10kVA Solar-Powered Resort",
-            description: "Operational pilot resort with off-grid infrastructure, certified by “Retiree Philippines”.",
+            description: "Operational pilot resort with off-grid infrastructure, certified by "Retiree Philippines".",
             details: "Proof of execution and commitment to sustainability, not just projections.",
             visual: <div className="w-12 h-12 bg-gray-100 rounded-md flex-shrink-0 ml-4 flex items-center justify-center border text-gray-400" title="Placeholder for resort photo"><HomeIcon className="h-6 w-6" /></div>
         },
