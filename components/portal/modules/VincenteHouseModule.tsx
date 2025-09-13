@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { UserRole } from '../../Portal';
 import type { Task, Labor, Material, ProjectData, TaskStatus, TaskType, LaborRateType, MaterialCategory, MaterialUnit } from '../../../types/portal';
 import {
-    PlusIcon, PencilIcon, TrashIcon, EyeIcon, SearchIcon, FilterIcon, 
+    PlusIcon, PencilIcon, TrashIcon, SearchIcon, FilterIcon, 
     TableIcon, ViewGridIcon, CalendarIcon, DotsVerticalIcon, XIcon
 } from '../PortalIcons';
 
