@@ -159,7 +159,6 @@ const MarketAnalysis: React.FC<MarketAnalysisProps> = ({ weeklyTotals, currency 
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Market Analysis</h2>
                     <p className="text-lg sm:text-xl text-[#5B6470] mt-2 max-w-3xl mx-auto">Strong demand, underserved market, proven regulatory moat.</p>
-                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">

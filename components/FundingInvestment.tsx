@@ -172,7 +172,6 @@ const FundingInvestment: React.FC<FundingInvestmentProps> = ({ currency, weeklyT
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Funding & Investment Opportunity</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Join us in capitalizing on Palawan's growth. We offer multiple tiers for strategic partnership.</p>
-                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
 
                 {/* Investment Tiers */}

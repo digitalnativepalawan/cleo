@@ -80,7 +80,6 @@ const ESG: React.FC<ESGProps> = ({ weeklyTotals, currency }) => {
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Environmental, Social, & Governance (ESG) Commitment</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-3xl mx-auto">Our framework for sustainable growth, community partnership, and responsible investment.</p>
-                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
                     {pillars.map(pillar => (

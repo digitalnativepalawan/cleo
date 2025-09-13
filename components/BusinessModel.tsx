@@ -38,7 +38,6 @@ const BusinessModel: React.FC<BusinessModelProps> = ({ weeklyTotals, currency })
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Business Model & Revenue Streams</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-4xl mx-auto">A balanced alliance combining proven land authority, operational excellence, and vertical expansion.</p>
-                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 
                 <div className="max-w-7xl mx-auto">

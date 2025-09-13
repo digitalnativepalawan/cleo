@@ -97,7 +97,6 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ currency, weeklyTot
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Executive Summary</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">A high-level overview of our strategic direction and foundational strengths.</p>
-                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
                     {/* Left Column: Mission & Vision */}
