@@ -459,7 +459,7 @@ const ProjectModule: React.FC<{
     onUpdateProjectData: (data: ProjectData) => void;
 }> = ({ project, role, showToast, projectData, onUpdateProjectData }) => {
     const [activeTab, setActiveTab] = useState<'tasks' | 'labor' | 'materials'>('tasks');
-    const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+    const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     
