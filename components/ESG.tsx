@@ -39,6 +39,7 @@ interface ESGProps {
     currency: Currency;
 }
 
+const ESG = ({ currency }: ESGProps) => {
     const pillars = [
         {
             icon: <LeafIcon className="h-8 w-8" />,
@@ -72,12 +73,15 @@ interface ESGProps {
         },
     ];
 
+    const weeklyTotals = { paid: 0, unpaid: 0 };
+
     return (
         <section id="esg" className="relative bg-white py-20 sm:py-24 overflow-hidden">
             <div className="container mx-auto px-6 relative z-10">
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Environmental, Social, & Governance (ESG) Commitment</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-3xl mx-auto">Our framework for sustainable growth, community partnership, and responsible investment.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
                     {pillars.map(pillar => (
