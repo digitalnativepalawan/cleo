@@ -165,12 +165,15 @@ const FundingInvestment: React.FC<FundingInvestmentProps> = ({ currency }) => {
         { icon: <UsersGroupIcon />, title: "Equity Partner", amount: `${formatCurrencyValue(25000000, currency)}+`, benefit: "Direct equity stake in the holding company, including profit sharing, and a potential board seat." },
     ];
 
+    const weeklyTotals = { paid: 0, unpaid: 0 };
+
     return (
         <section id="investment" className="bg-gray-50/50 py-20 sm:py-24">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Funding & Investment Opportunity</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Join us in capitalizing on Palawan's growth. We offer multiple tiers for strategic partnership.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
 
                 {/* Investment Tiers */}
