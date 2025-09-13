@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
+  <style id="hotfix-magnifier">
+  /* Constrain the oversized search SVG overlay */
+  svg.absolute.left-3.top-1\/2,
+  svg.absolute[class*="left-3"][class*="top-1/2"] {
+    width: 20px !important;
+    height: 20px !important;
+    pointer-events: none !important; /* never block clicks */
+  }
+</style>
+
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
