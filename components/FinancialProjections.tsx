@@ -175,6 +175,8 @@ interface FinancialProjectionsProps {
 }
 
 const FinancialProjections: React.FC<FinancialProjectionsProps> = ({ currency }) => {
+    const weeklyTotals = { paid: 0, unpaid: 0 };
+
     const kpis = [
         { value: "70%", label: "Target Occupancy", sublabel: "Year 3 Average" },
         { value: formatCurrencyValue(12000, currency), label: "Average Daily Rate", sublabel: "Peak Season Estimate" },
@@ -188,6 +190,7 @@ const FinancialProjections: React.FC<FinancialProjectionsProps> = ({ currency })
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Financial Projections</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Scalable, resilient growth model with strong underlying assets.</p>
+                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-16">
