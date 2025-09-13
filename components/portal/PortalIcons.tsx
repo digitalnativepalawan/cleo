@@ -64,7 +64,6 @@ export const ArchiveIcon: React.FC<{className?: string}> = ({className="h-5 w-5"
     </svg>
 );
 
-
 // --- UI & NAVIGATION ICONS ---
 export const SearchIcon: React.FC<{className?: string}> = ({className="h-5 w-5"}) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
