@@ -1,1 +1,7 @@
+/* Hotfix: shrink the oversized search icon */
+svg.absolute.left-3.top-1\/2 {
+  width: 20px !important;
+  height: 20px !important;
+  pointer-events: none !important;
+}
 
