@@ -9,6 +9,13 @@ import {
 // Utility functions
 const simpleId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+// Loading component
+const LoadingSpinner: React.FC = () => (
+    <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+);
+
 // Status and type options
 const TASK_STATUSES: TaskStatus[] = ['Pending', 'Backlog', 'In Progress', 'Blocked', 'Review', 'Done'];
 const TASK_TYPES: TaskType[] = ['Design', 'Site Prep', 'Foundation', 'Structure', 'MEP', 'Finish', 'Inspection'];
@@ -312,6 +319,7 @@ const VincenteHouseModule: React.FC<{
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Filter data based on search term
     const filteredTasks = useMemo(() => 
@@ -338,19 +346,21 @@ const VincenteHouseModule: React.FC<{
 
     // CRUD operations
     const handleAdd = () => {
+        if (isLoading) return;
         setEditingItem({});
         setIsModalOpen(true);
     };
 
     const handleEdit = (item: any) => {
-        if (role !== 'admin') return;
+        if (role !== 'admin' || isLoading) return;
         setEditingItem(item);
         setIsModalOpen(true);
     };
 
     const handleDelete = (id: string) => {
-        if (role !== 'admin') return;
+        if (role !== 'admin' || isLoading) return;
         if (window.confirm('Are you sure you want to delete this item?')) {
+            setIsLoading(true);
             const newData = { ...projectData };
             if (activeTab === 'tasks') {
                 newData.tasks = newData.tasks.filter(t => t.id !== id);
@@ -361,10 +371,12 @@ const VincenteHouseModule: React.FC<{
             }
             onUpdateProjectData(newData);
             showToast('Item deleted successfully.');
+            setIsLoading(false);
         }
     };
 
     const handleSave = (item: any) => {
+        setIsLoading(true);
         const newData = { ...projectData };
         const itemWithId = item.id ? item : { ...item, id: simpleId(), projectId: project.id };
         
@@ -392,6 +404,7 @@ const VincenteHouseModule: React.FC<{
         setIsModalOpen(false);
         setEditingItem(null);
         showToast(`${activeTab.slice(0, -1)} ${item.id ? 'updated' : 'created'} successfully.`);
+        setIsLoading(false);
     };
 
     // Render functions
@@ -426,8 +439,20 @@ const VincenteHouseModule: React.FC<{
                                 <div className="flex justify-end gap-2">
                                     {role === 'admin' ? (
                                         <>
-                                            <button onClick={() => handleEdit(task)} className="p-2 text-gray-500 hover:text-blue-600"><PencilIcon /></button>
-                                            <button onClick={() => handleDelete(task.id)} className="p-2 text-gray-500 hover:text-red-600"><TrashIcon /></button>
+                                            <button 
+                                                onClick={() => handleEdit(task)} 
+                                                disabled={isLoading}
+                                                className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <PencilIcon />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(task.id)} 
+                                                disabled={isLoading}
+                                                className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <TrashIcon />
+                                            </button>
                                         </>
                                     ) : <span className="text-xs text-gray-400 italic">Read-only</span>}
                                 </div>
@@ -472,8 +497,20 @@ const VincenteHouseModule: React.FC<{
                                 <div className="flex justify-end gap-2">
                                     {role === 'admin' ? (
                                         <>
-                                            <button onClick={() => handleEdit(labor)} className="p-2 text-gray-500 hover:text-blue-600"><PencilIcon /></button>
-                                            <button onClick={() => handleDelete(labor.id)} className="p-2 text-gray-500 hover:text-red-600"><TrashIcon /></button>
+                                            <button 
+                                                onClick={() => handleEdit(labor)} 
+                                                disabled={isLoading}
+                                                className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <PencilIcon />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(labor.id)} 
+                                                disabled={isLoading}
+                                                className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <TrashIcon />
+                                            </button>
                                         </>
                                     ) : <span className="text-xs text-gray-400 italic">Read-only</span>}
                                 </div>
@@ -518,8 +555,20 @@ const VincenteHouseModule: React.FC<{
                                 <div className="flex justify-end gap-2">
                                     {role === 'admin' ? (
                                         <>
-                                            <button onClick={() => handleEdit(material)} className="p-2 text-gray-500 hover:text-blue-600"><PencilIcon /></button>
-                                            <button onClick={() => handleDelete(material.id)} className="p-2 text-gray-500 hover:text-red-600"><TrashIcon /></button>
+                                            <button 
+                                                onClick={() => handleEdit(material)} 
+                                                disabled={isLoading}
+                                                className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <PencilIcon />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(material.id)} 
+                                                disabled={isLoading}
+                                                className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <TrashIcon />
+                                            </button>
                                         </>
                                     ) : <span className="text-xs text-gray-400 italic">Read-only</span>}
                                 </div>
@@ -562,7 +611,8 @@ const VincenteHouseModule: React.FC<{
                     {role === 'admin' && (
                         <button 
                             onClick={handleAdd}
-                            className="flex items-center gap-2 text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                            disabled={isLoading}
+                            className="flex items-center gap-2 text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <PlusIcon />
                             <span>{getAddButtonLabel()}</span>
@@ -621,10 +671,16 @@ const VincenteHouseModule: React.FC<{
             </div>
 
             {/* Content */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden min-h-[400px]">
+                {isLoading ? (
+                    <LoadingSpinner />
+                ) : (
+                    <>
                 {activeTab === 'tasks' && renderTasksTable()}
                 {activeTab === 'labor' && renderLaborTable()}
                 {activeTab === 'materials' && renderMaterialsTable()}
+                    </>
+                )}
             </div>
 
             {/* Modals */}
