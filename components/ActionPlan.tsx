@@ -41,7 +41,7 @@ const formatCurrencyRange = (phpMin: number, phpMax: number, currency: Currency)
     const maxFormatted = new Intl.NumberFormat('en-US', options).format(displayMax);
 
     return `${CURRENCY_SYMBOLS[currency]}${minFormatted}–${maxFormatted}${suffix}`;
-}
+};
 
 
 const WavePattern = () => (
@@ -57,6 +57,7 @@ interface ActionPlanProps {
     currency: Currency;
 }
 
+const ActionPlan: React.FC<ActionPlanProps> = ({ currency }) => {
     const milestones = [
         {
             icon: <ClipboardCheckIcon />,
@@ -91,7 +92,7 @@ interface ActionPlanProps {
         { icon: <HardHatIcon />, period: "2026", title: "Phase 1 Launch" },
         { icon: <HomeIcon className="h-8 w-8"/>, period: "2027", title: "Phase 2 (10+)" },
         { icon: <TrendingUpIcon />, period: "2028", title: "Maturity (25+)" },
-    ]
+    ];
 
     return (
         <section id="action-plan" className="relative bg-white py-20 sm:py-24 overflow-hidden">
