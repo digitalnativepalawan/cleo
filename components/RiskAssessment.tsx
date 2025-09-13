@@ -20,7 +20,7 @@ interface RiskAssessmentProps {
     currency: Currency;
 }
 
-const RiskAssessment = ({ currency }: RiskAssessmentProps) => {
+const RiskAssessment: React.FC<RiskAssessmentProps> = ({ currency }) => {
     const risks = [
         {
             icon: <ScaleIcon />,
@@ -44,15 +44,12 @@ const RiskAssessment = ({ currency }: RiskAssessmentProps) => {
         },
     ];
 
-    const weeklyTotals = { paid: 0, unpaid: 0 };
-
     return (
         <section id="risks" className="bg-white py-20 sm:py-24">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-16">
                     <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Risk Assessment & Mitigation</h2>
                     <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">A proactive approach to identifying and managing potential challenges.</p>
-                    <WeeklyTotalsDisplay paid={weeklyTotals.paid} unpaid={weeklyTotals.unpaid} currency={currency} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
                     {risks.map(risk => (
