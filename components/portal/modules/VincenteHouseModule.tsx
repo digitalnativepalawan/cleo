@@ -316,7 +316,6 @@ const VincenteHouseModule: React.FC<{
 }> = ({ project, role, showToast, projectData, onUpdateProjectData }) => {
     const [activeTab, setActiveTab] = useState<'tasks' | 'labor' | 'materials'>('tasks');
     const [searchTerm, setSearchTerm] = useState('');
-    const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -642,17 +641,15 @@ const VincenteHouseModule: React.FC<{
 
             {/* Controls */}
             <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="relative flex-1 max-w-md">
-                        <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
+                <div className="relative max-w-md">
+                    <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
                 </div>
             </div>
 
