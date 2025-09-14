@@ -38,6 +38,20 @@ async function init() {
       materials_cost NUMERIC DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS materials (
+      id SERIAL PRIMARY KEY,
+      item_name TEXT NOT NULL,
+      image_url TEXT,
+      category TEXT,
+      unit TEXT,
+      quantity NUMERIC DEFAULT 0,
+      unit_cost NUMERIC DEFAULT 0,
+      total_cost NUMERIC DEFAULT 0,
+      supplier TEXT,
+      delivery_eta DATE,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
 }
 init().catch(console.error);
@@ -62,6 +76,29 @@ app.post("/tasks", async (req, res) => {
 app.get("/tasks", async (_req, res) => {
   const { rows } = await pool.query(
     `SELECT * FROM tasks ORDER BY created_at DESC`
+  );
+  res.json(rows);
+});
+
+// Materials API
+app.post("/materials", async (req, res) => {
+  const { item_name, image_url, category, unit, quantity, unit_cost, total_cost, supplier, delivery_eta, notes } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO materials (item_name, image_url, category, unit, quantity, unit_cost, total_cost, supplier, delivery_eta, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [item_name, image_url, category, unit, quantity, unit_cost, total_cost, supplier, delivery_eta, notes]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Failed to save material" });
+  }
+});
+
+app.get("/materials", async (_req, res) => {
+  const { rows } = await pool.query(
+    `SELECT * FROM materials ORDER BY created_at DESC`
   );
   res.json(rows);
 });
