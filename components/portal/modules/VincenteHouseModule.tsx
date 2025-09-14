@@ -29,7 +29,7 @@ import {
   materialOperations, 
   getProjectData as fetchProjectData,
   uploadFile 
-} from '../../../lib/supabase-helpers';
+} from '../../../src/lib/supabase-helpers';
 
 // ---------- Utils ----------
 const simpleId = () =>
