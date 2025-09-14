@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import type { UserRole } from '../../Portal';
 import type {
   Task,
@@ -21,13 +22,14 @@ import {
   XIcon,
 } from '../PortalIcons';
 
-/** ─────────────────────────────────────────────────────────
- *  CONFIG — change if your backend route is different
- *  e.g. '/upload' or '/api/upload'
- *  The endpoint should return JSON: { url: string, key?: string }
- *  where `url` is the public object URL in Sevalla storage.
- *  ───────────────────────────────────────────────────────── */
-const UPLOAD_ENDPOINT = '/api/upload';
+// Import Supabase helpers
+import { 
+  taskOperations, 
+  laborOperations, 
+  materialOperations, 
+  getProjectData as fetchProjectData,
+  uploadFile 
+} from '../../../lib/supabase-helpers';
 
 // ---------- Utils ----------
 const simpleId = () =>
@@ -92,44 +94,24 @@ const getStatusColor = (status: string) => {
   return colors[status] || 'bg-gray-100 text-gray-800';
 };
 
-/** Upload a file to backend -> Sevalla; returns public URL */
-async function uploadFileToSevalla(file: File): Promise<{ url: string; key?: string }> {
+/** Upload a file to Supabase Storage; returns public URL */
+async function uploadFileToSupabase(file: File): Promise<{ url: string; key?: string }> {
   try {
-    // For demo purposes, convert file to data URL for immediate preview
-    // In production, you'd upload to actual cloud storage
+    const { url, path } = await uploadFile(file, 'materials');
+    return { url, key: path };
+  } catch (error) {
+    console.error('Upload failed:', error);
+    // Fallback to data URL for immediate preview
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-
-    // Simulate API call for consistency
-    const fd = new FormData();
-    fd.append('file', file);
-    
-    try {
-      const res = await fetch(UPLOAD_ENDPOINT, {
-        method: 'POST',
-        body: fd,
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        return { url: data.url || dataUrl, key: data.key };
-      }
-    } catch (apiError) {
-      console.warn('API upload failed, using local data URL:', apiError);
-    }
-
-    // Fallback to data URL if API fails
     return { 
       url: dataUrl, 
-      key: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` 
+      key: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` 
     };
-    
-  } catch (error) {
-    throw new Error(`File processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -667,7 +649,7 @@ const MaterialModal: React.FC<{
 
       // If a file is selected, upload it and use the returned URL
       if (selectedFile) {
-        const { url } = await uploadFileToSevalla(selectedFile);
+        const { url } = await uploadFileToSupabase(selectedFile);
         imageUrl = url;
       }
 
@@ -1008,6 +990,7 @@ const VincenteHouseModule: React.FC<{
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // NEW: image preview state
   const [imagePreview, setImagePreview] = useState<{
@@ -1016,6 +999,27 @@ const VincenteHouseModule: React.FC<{
   } | null>(null);
 
   const getMaterialImageSrc = (m: any) => m.imageUrl?.trim() || '';
+
+  // Load data from Supabase on component mount
+  useEffect(() => {
+    const loadProjectData = async () => {
+      if (dataLoaded) return;
+      
+      try {
+        setIsLoading(true);
+        const data = await fetchProjectData(project.id);
+        onUpdateProjectData(data);
+        setDataLoaded(true);
+      } catch (error) {
+        console.error('Failed to load project data:', error);
+        showToast('Failed to load project data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProjectData();
+  }, [project.id, dataLoaded, onUpdateProjectData, showToast]);
 
   // searches
   const filteredTasks = useMemo(
@@ -1065,7 +1069,23 @@ const VincenteHouseModule: React.FC<{
   const handleDelete = (id: string) => {
     if (role !== 'admin' || isLoading) return;
     if (window.confirm('Are you sure you want to delete this item?')) {
+      deleteItem(id);
+    }
+  };
+
+  const deleteItem = async (id: string) => {
+    try {
       setIsLoading(true);
+      
+      if (activeTab === 'tasks') {
+        await taskOperations.delete(id);
+      } else if (activeTab === 'labor') {
+        await laborOperations.delete(id);
+      } else {
+        await materialOperations.delete(id);
+      }
+      
+      // Update local state
       const newData = { ...projectData };
       if (activeTab === 'tasks') {
         newData.tasks = newData.tasks.filter((t) => t.id !== id);
@@ -1076,34 +1096,60 @@ const VincenteHouseModule: React.FC<{
       }
       onUpdateProjectData(newData);
       showToast('Item deleted successfully.');
+    } catch (error) {
+      console.error('Delete failed:', error);
+      showToast('Failed to delete item. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSave = (item: any) => {
-    setIsLoading(true);
-    const newData = { ...projectData };
-    const itemWithId = item.id ? item : { ...item, id: simpleId(), projectId: project.id };
+  const handleSave = async (item: any) => {
+    try {
+      setIsLoading(true);
+      const itemWithProjectId = { ...item, projectId: project.id };
+      let savedItem;
 
-    if (activeTab === 'tasks') {
-      newData.tasks = item.id
-        ? newData.tasks.map((t) => (t.id === item.id ? itemWithId : t))
-        : [...newData.tasks, itemWithId];
-    } else if (activeTab === 'labor') {
-      newData.labor = item.id
-        ? newData.labor.map((l) => (l.id === item.id ? itemWithId : l))
-        : [...newData.labor, itemWithId];
-    } else {
-      newData.materials = item.id
-        ? newData.materials.map((m) => (m.id === item.id ? itemWithId : m))
-        : [...newData.materials, itemWithId];
+      if (activeTab === 'tasks') {
+        savedItem = item.id 
+          ? await taskOperations.update(item.id, itemWithProjectId)
+          : await taskOperations.create(itemWithProjectId);
+      } else if (activeTab === 'labor') {
+        savedItem = item.id
+          ? await laborOperations.update(item.id, itemWithProjectId)
+          : await laborOperations.create(itemWithProjectId);
+      } else {
+        savedItem = item.id
+          ? await materialOperations.update(item.id, itemWithProjectId)
+          : await materialOperations.create(itemWithProjectId);
+      }
+
+      // Update local state
+      const newData = { ...projectData };
+      if (activeTab === 'tasks') {
+        newData.tasks = item.id
+          ? newData.tasks.map((t) => (t.id === item.id ? savedItem : t))
+          : [...newData.tasks, savedItem];
+      } else if (activeTab === 'labor') {
+        newData.labor = item.id
+          ? newData.labor.map((l) => (l.id === item.id ? savedItem : l))
+          : [...newData.labor, savedItem];
+      } else {
+        newData.materials = item.id
+          ? newData.materials.map((m) => (m.id === item.id ? savedItem : m))
+          : [...newData.materials, savedItem];
+      }
+
+      onUpdateProjectData(newData);
+      setIsModalOpen(false);
+      setEditingItem(null);
+      showToast(`${activeTab.slice(0, -1)} ${item.id ? 'updated' : 'created'} successfully.`);
+    } catch (error) {
+      console.error('Save failed:', error);
+      showToast('Failed to save item. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    onUpdateProjectData(newData);
-    setIsModalOpen(false);
-    setEditingItem(null);
-    showToast(`${activeTab.slice(0, -1)} ${item.id ? 'updated' : 'created'} successfully.`);
-    setIsLoading(false);
   };
 
   // renderers
