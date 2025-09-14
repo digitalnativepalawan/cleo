@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { UserRole } from '../../Portal';
 import type {
   Task,
@@ -20,6 +20,14 @@ import {
   ViewGridIcon,
   XIcon,
 } from '../PortalIcons';
+
+/** ─────────────────────────────────────────────────────────
+ *  CONFIG — change if your backend route is different
+ *  e.g. '/upload' or '/api/upload'
+ *  The endpoint should return JSON: { url: string, key?: string }
+ *  where `url` is the public object URL in Sevalla storage.
+ *  ───────────────────────────────────────────────────────── */
+const UPLOAD_ENDPOINT = '/api/upload';
 
 // ---------- Utils ----------
 const simpleId = () =>
@@ -84,6 +92,23 @@ const getStatusColor = (status: string) => {
   return colors[status] || 'bg-gray-100 text-gray-800';
 };
 
+/** Upload a file to backend -> Sevalla; returns public URL */
+async function uploadFileToSevalla(file: File): Promise<{ url: string; key?: string }> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch(UPLOAD_ENDPOINT, {
+    method: 'POST',
+    body: fd,
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`Upload failed (${res.status}): ${txt || 'unknown error'}`);
+  }
+  const data = (await res.json()) as { url: string; key?: string };
+  if (!data?.url) throw new Error('Upload succeeded but response missing url');
+  return data;
+}
+
 // ========================================================
 // Task Modal
 // ========================================================
@@ -140,7 +165,7 @@ const TaskModal: React.FC<{
               type="text"
               name="name"
               id="name"
-              value={formData.name || ''}
+              value={(formData as any).name || ''}
               onChange={handleChange}
               className={inputClass}
               required
@@ -158,7 +183,7 @@ const TaskModal: React.FC<{
               <select
                 name="type"
                 id="type"
-                value={formData.type || ''}
+                value={(formData as any).type || ''}
                 onChange={handleChange}
                 className={inputClass}
               >
@@ -180,7 +205,7 @@ const TaskModal: React.FC<{
               <select
                 name="status"
                 id="status"
-                value={formData.status || ''}
+                value={(formData as any).status || ''}
                 onChange={handleChange}
                 className={inputClass}
               >
@@ -206,7 +231,7 @@ const TaskModal: React.FC<{
                 type="date"
                 name="startDate"
                 id="startDate"
-                value={formData.startDate || ''}
+                value={(formData as any).startDate || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -222,7 +247,7 @@ const TaskModal: React.FC<{
                 type="date"
                 name="dueDate"
                 id="dueDate"
-                value={formData.dueDate || ''}
+                value={(formData as any).dueDate || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -241,7 +266,7 @@ const TaskModal: React.FC<{
                 type="text"
                 name="owner"
                 id="owner"
-                value={formData.owner || ''}
+                value={(formData as any).owner || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -257,7 +282,7 @@ const TaskModal: React.FC<{
                 type="number"
                 name="cost"
                 id="cost"
-                value={formData.cost || ''}
+                value={(formData as any).cost || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -275,7 +300,7 @@ const TaskModal: React.FC<{
               name="notes"
               id="notes"
               rows={3}
-              value={formData.notes || ''}
+              value={(formData as any).notes || ''}
               onChange={handleChange}
               className={inputClass}
             />
@@ -325,12 +350,12 @@ const LaborModal: React.FC<{
 
     if (name === 'rate' || name === 'qty') {
       const rate = parseFloat(
-        name === 'rate' ? value : formData.rate?.toString() || '0'
+        name === 'rate' ? value : (formData as any).rate?.toString() || '0'
       );
       const qty = parseFloat(
-        name === 'qty' ? value : formData.qty?.toString() || '0'
+        name === 'qty' ? value : (formData as any).qty?.toString() || '0'
       );
-      newData.cost = rate * qty;
+      (newData as any).cost = rate * qty;
     }
     setFormData(newData);
   };
@@ -351,7 +376,7 @@ const LaborModal: React.FC<{
       >
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="text-lg font-semibold text-gray-900">
-            {labor.id ? 'Edit' : 'Create'} Labor Entry
+            {(labor as any).id ? 'Edit' : 'Create'} Labor Entry
           </h3>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
             <XIcon />
@@ -371,7 +396,7 @@ const LaborModal: React.FC<{
                 type="text"
                 name="crewRole"
                 id="crewRole"
-                value={formData.crewRole || ''}
+                value={(formData as any).crewRole || ''}
                 onChange={handleChange}
                 className={inputClass}
                 required
@@ -388,7 +413,7 @@ const LaborModal: React.FC<{
                 type="text"
                 name="workers"
                 id="workers"
-                value={formData.workers || ''}
+                value={(formData as any).workers || ''}
                 onChange={handleChange}
                 className={inputClass}
                 required
@@ -407,7 +432,7 @@ const LaborModal: React.FC<{
               <select
                 name="rateType"
                 id="rateType"
-                value={formData.rateType || ''}
+                value={(formData as any).rateType || ''}
                 onChange={handleChange}
                 className={inputClass}
               >
@@ -431,7 +456,7 @@ const LaborModal: React.FC<{
                 step="0.01"
                 name="rate"
                 id="rate"
-                value={formData.rate || ''}
+                value={(formData as any).rate || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -448,7 +473,7 @@ const LaborModal: React.FC<{
                 step="0.01"
                 name="qty"
                 id="qty"
-                value={formData.qty || ''}
+                value={(formData as any).qty || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -467,7 +492,7 @@ const LaborModal: React.FC<{
                 type="date"
                 name="startDate"
                 id="startDate"
-                value={formData.startDate || ''}
+                value={(formData as any).startDate || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -483,11 +508,17 @@ const LaborModal: React.FC<{
                 type="date"
                 name="endDate"
                 id="endDate"
-                value={formData.endDate || ''}
+                value={(formData as any).endDate || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Total Cost: ₱{(((formData as any).cost || 0) as number).toLocaleString()}
+            </label>
           </div>
 
           <div>
@@ -501,16 +532,10 @@ const LaborModal: React.FC<{
               type="text"
               name="supplier"
               id="supplier"
-              value={formData.supplier || ''}
+              value={(formData as any).supplier || ''}
               onChange={handleChange}
               className={inputClass}
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Total Cost: ₱{(formData.cost || 0).toLocaleString()}
-            </label>
           </div>
 
           <div>
@@ -524,7 +549,7 @@ const LaborModal: React.FC<{
               name="notes"
               id="notes"
               rows={3}
-              value={formData.notes || ''}
+              value={(formData as any).notes || ''}
               onChange={handleChange}
               className={inputClass}
             />
@@ -553,7 +578,7 @@ const LaborModal: React.FC<{
 };
 
 // ========================================================
-/** Material Modal — with Image URL + local upload (Base64) */
+/** Material Modal — Image URL or local file upload to Sevalla */
 // ========================================================
 const MaterialModal: React.FC<{
   material: Partial<Material>;
@@ -561,6 +586,9 @@ const MaterialModal: React.FC<{
   onSave: (material: Partial<Material>) => void;
 }> = ({ material, onClose, onSave }) => {
   const [formData, setFormData] = useState(material);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const inputClass =
     'w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
 
@@ -570,14 +598,14 @@ const MaterialModal: React.FC<{
     >
   ) => {
     const { name, value } = e.target;
-    const newData: any = { ...formData, [name]: value };
+    const newData: any = { ...(formData as any), [name]: value };
 
     if (name === 'unitCost' || name === 'qty') {
       const unitCost = parseFloat(
-        name === 'unitCost' ? value : formData.unitCost?.toString() || '0'
+        name === 'unitCost' ? value : ((formData as any).unitCost ?? '').toString() || '0'
       );
       const qty = parseFloat(
-        name === 'qty' ? value : formData.qty?.toString() || '0'
+        name === 'qty' ? value : ((formData as any).qty ?? '').toString() || '0'
       );
       newData.totalCost = unitCost * qty;
     }
@@ -586,23 +614,50 @@ const MaterialModal: React.FC<{
 
   // Image URL typed by user
   const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, imageUrl: e.target.value }));
+    const v = e.target.value;
+    setFormData((prev) => ({ ...(prev as any), imageUrl: v }));
+    setPreview(v || null);
+    setSelectedFile(null);
   };
 
-  // Local file upload → Base64 data URL
+  // Local file upload – keep preview with Object URL (faster than Base64)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData((prev) => ({ ...prev, imageUrl: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    const file = e.target.files?.[0] || null;
+    if (!file) {
+      setSelectedFile(null);
+      setPreview(null);
+      return;
+    }
+    setSelectedFile(file);
+    const objUrl = URL.createObjectURL(file);
+    setPreview(objUrl);
+    // Do not set imageUrl here; we only set it after successful upload
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    try {
+      setSaving(true);
+
+      let imageUrl = (formData as any).imageUrl as string | undefined;
+
+      // If a file is selected, upload it and use the returned URL
+      if (selectedFile) {
+        const { url } = await uploadFileToSevalla(selectedFile);
+        imageUrl = url;
+      }
+
+      const payload = {
+        ...(formData as any),
+        imageUrl: imageUrl || '',
+      };
+
+      onSave(payload);
+      setSaving(false);
+    } catch (err: any) {
+      setSaving(false);
+      alert(err?.message || 'Upload failed');
+    }
   };
 
   return (
@@ -616,7 +671,7 @@ const MaterialModal: React.FC<{
       >
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="text-lg font-semibold text-gray-900">
-            {material.id ? 'Edit' : 'Create'} Material Entry
+            {(material as any).id ? 'Edit' : 'Create'} Material Entry
           </h3>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
             <XIcon />
@@ -635,7 +690,7 @@ const MaterialModal: React.FC<{
               type="text"
               name="item"
               id="item"
-              value={formData.item || ''}
+              value={(formData as any).item || ''}
               onChange={handleChange}
               className={inputClass}
               required
@@ -656,12 +711,12 @@ const MaterialModal: React.FC<{
                 name="imageUrl"
                 id="imageUrl"
                 placeholder="https://example.com/image.jpg"
-                value={formData.imageUrl || ''}
+                value={(formData as any).imageUrl || ''}
                 onChange={handleImageUrlChange}
                 className={inputClass}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Paste a direct image link (e.g., from Google Images/CDN).
+                Paste a direct image link, or use file upload on the right.
               </p>
             </div>
             <div>
@@ -675,16 +730,16 @@ const MaterialModal: React.FC<{
                 className="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-300 file:bg-white hover:file:bg-gray-50"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Upload stores an embeddable copy (Base64) with this item.
+                Selecting a file will upload to Sevalla on save.
               </p>
             </div>
           </div>
 
-          {formData.imageUrl ? (
+          {(preview || (formData as any).imageUrl) ? (
             <div className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={formData.imageUrl}
+                src={preview || (formData as any).imageUrl}
                 alt="Preview"
                 className="h-20 w-20 object-cover rounded-md border border-gray-200"
               />
@@ -703,7 +758,7 @@ const MaterialModal: React.FC<{
               <select
                 name="category"
                 id="category"
-                value={formData.category || ''}
+                value={(formData as any).category || ''}
                 onChange={handleChange}
                 className={inputClass}
               >
@@ -725,7 +780,7 @@ const MaterialModal: React.FC<{
               <select
                 name="unit"
                 id="unit"
-                value={formData.unit || ''}
+                value={(formData as any).unit || ''}
                 onChange={handleChange}
                 className={inputClass}
               >
@@ -752,7 +807,7 @@ const MaterialModal: React.FC<{
                 step="0.01"
                 name="qty"
                 id="qty"
-                value={formData.qty || ''}
+                value={(formData as any).qty || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -769,7 +824,7 @@ const MaterialModal: React.FC<{
                 step="0.01"
                 name="unitCost"
                 id="unitCost"
-                value={formData.unitCost || ''}
+                value={(formData as any).unitCost || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -779,7 +834,7 @@ const MaterialModal: React.FC<{
                 Total Cost
               </label>
               <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700">
-                ₱{(formData.totalCost || 0).toLocaleString()}
+                ₱{(((formData as any).totalCost || 0) as number).toLocaleString()}
               </div>
             </div>
           </div>
@@ -796,7 +851,7 @@ const MaterialModal: React.FC<{
                 type="text"
                 name="supplier"
                 id="supplier"
-                value={formData.supplier || ''}
+                value={(formData as any).supplier || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -812,7 +867,7 @@ const MaterialModal: React.FC<{
                 type="date"
                 name="deliveryEta"
                 id="deliveryEta"
-                value={formData.deliveryEta || ''}
+                value={(formData as any).deliveryEta || ''}
                 onChange={handleChange}
                 className={inputClass}
               />
@@ -830,7 +885,7 @@ const MaterialModal: React.FC<{
               name="notes"
               id="notes"
               rows={3}
-              value={formData.notes || ''}
+              value={(formData as any).notes || ''}
               onChange={handleChange}
               className={inputClass}
             />
@@ -842,15 +897,17 @@ const MaterialModal: React.FC<{
             type="button"
             onClick={onClose}
             className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
+            disabled={saving}
           >
             Cancel
           </button>
           <button
             type="submit"
             onClick={handleSubmit}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-60"
+            disabled={saving}
           >
-            Save Material
+            {saving ? 'Saving…' : 'Save Material'}
           </button>
         </div>
       </div>
@@ -934,7 +991,6 @@ const VincenteHouseModule: React.FC<{
     alt?: string;
   } | null>(null);
 
-  // Optional: resolver in case we add different fields later
   const getMaterialImageSrc = (m: any) => m.imageUrl?.trim() || '';
 
   // searches
@@ -1413,4 +1469,3 @@ const VincenteHouseModule: React.FC<{
 };
 
 export default VincenteHouseModule;
-
