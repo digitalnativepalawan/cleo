@@ -46,7 +46,7 @@ const Portal: React.FC<PortalProps> = ({ isOpen, onClose, posts, setPosts, proje
             aria-modal="true"
             role="dialog"
         >
-            <div className="bg-[var(--bg-primary)] rounded-none md:rounded-2xl shadow-2xl w-full h-full flex flex-col relative overflow-hidden">
+            <div className="bg-[var(--bg-primary)] rounded-none md:rounded-2xl shadow-2xl w-full h-full flex flex-col relative">
                 <button 
                     onClick={onClose} 
                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors z-50"

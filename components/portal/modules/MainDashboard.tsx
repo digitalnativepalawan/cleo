@@ -16,7 +16,6 @@ const MainDashboard: React.FC<{
                         className="p-4 border rounded-lg text-left hover:bg-gray-50 hover:border-blue-500 transition-all group focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <h3 className="font-semibold text-gray-800 group-hover:text-blue-600">{project.name}</h3>
-                        <p className="text-xs text-gray-500 mt-1">Click to view details</p>
                     </button>
                 ))}
             </div>

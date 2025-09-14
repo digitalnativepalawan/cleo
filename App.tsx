@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import MainLayout from './src/layouts/MainLayout.tsx';
 import HomePage from './src/pages/HomePage.tsx';
@@ -90,10 +91,6 @@ function App() {
         console.error("Error saving project data to localStorage", error);
     }
   }, [projectsData]);
-
-  useEffect(() => {
-    document.body.style.overflow = isPortalOpen ? 'hidden' : '';
-  }, [isPortalOpen]);
   
   return (
     <div className="bg-[var(--bg-primary)]">

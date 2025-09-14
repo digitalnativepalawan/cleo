@@ -146,10 +146,6 @@ const Header: React.FC<{
     }, []);
     
     useEffect(() => {
-        document.body.style.overflow = isMenuOpen ? 'hidden' : '';
-    }, [isMenuOpen]);
-
-    useEffect(() => {
         const timerId = setInterval(() => setCurrentDateTime(new Date()), 1000);
         return () => clearInterval(timerId);
     }, []);

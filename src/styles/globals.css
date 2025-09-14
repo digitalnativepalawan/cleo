@@ -16,10 +16,15 @@ ol[role='list'] {
 html:focus-within {
   scroll-behavior: smooth;
 }
+html, body, #root {
+  height: 100%;
+}
 body {
   min-height: 100vh;
   text-rendering: optimizeSpeed;
   line-height: 1.5;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 a:not([class]) {
   text-decoration-skip-ink: auto;
@@ -63,9 +68,6 @@ select {
 
 
 /* Base Styles */
-html, body {
-  overflow-x: hidden;
-}
 body {
   font-family: 'Inter', system-ui, sans-serif;
   color: var(--text-primary);
