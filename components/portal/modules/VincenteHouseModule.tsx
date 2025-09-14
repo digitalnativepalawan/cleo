@@ -1,919 +1,732 @@
-import React, { useMemo, useState } from 'react';
-import { useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { UserRole } from '../../Portal';
-import type {
-  Task,
-  Labor,
-  Material,
-  ProjectData,
-  TaskStatus,
-  TaskType,
-  LaborRateType,
-  MaterialCategory,
-  MaterialUnit,
-} from '../../../types/portal';
+import type { Task, Labor, Material, ProjectData, TaskStatus, TaskType, LaborRateType, MaterialCategory, MaterialUnit, Attachment } from '../../../types/portal';
 import {
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-  SearchIcon,
-  TableIcon,
-  ViewGridIcon,
-  XIcon,
+  PlusIcon, PencilIcon, TrashIcon, SearchIcon, FilterIcon, CalendarIcon,
+  DotsVerticalIcon, ChevronDownIcon, XIcon, UploadIcon, ImageIcon, DriveIcon
 } from '../PortalIcons';
-
-// Import Supabase helpers
-import { 
-  taskOperations, 
-  laborOperations, 
-  materialOperations, 
-  getProjectData as fetchProjectData,
-  uploadFile 
+import {
+  taskOperations,
+  laborOperations,
+  materialOperations,
+  uploadFile
 } from '../../../src/lib/supabase-helpers';
 
-// ---------- Utils ----------
-const simpleId = () =>
-  `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+const simpleId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-const LoadingSpinner: React.FC = () => (
+const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-8">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
   </div>
 );
 
-// ---------- Options ----------
-const TASK_STATUSES: TaskStatus[] = [
-  'Pending',
-  'Backlog',
-  'In Progress',
-  'Blocked',
-  'Review',
-  'Done',
-];
-const TASK_TYPES: TaskType[] = [
-  'Design',
-  'Site Prep',
-  'Foundation',
-  'Structure',
-  'MEP',
-  'Finish',
-  'Inspection',
-];
-const LABOR_RATE_TYPES: LaborRateType[] = ['Daily', 'Hourly', 'Contract'];
-const MATERIAL_CATEGORIES: MaterialCategory[] = [
-  'Aggregates',
-  'Timber',
-  'Steel',
-  'Electrical',
-  'Plumbing',
-  'Finishes',
-  'Fixtures',
-  'Other',
-];
-const MATERIAL_UNITS: MaterialUnit[] = [
-  'pc',
-  'box',
-  'm',
-  'sqm',
-  'kg',
-  'ton',
-  'liter',
-  'gallon',
-];
+const ErrorMessage = ({ message, onRetry }: { message: string; onRetry?: () => void }) => (
+  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+    <p className="text-red-600 mb-2">{message}</p>
+    {onRetry && (
+      <button 
+        onClick={onRetry}
+        className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+      >
+        Retry
+      </button>
+    )}
+  </div>
+);
 
-// ---------- Helpers ----------
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    Pending: 'bg-yellow-100 text-yellow-800',
-    Backlog: 'bg-gray-100 text-gray-800',
+// Status Pills
+const StatusPill = ({ status }: { status: string }) => {
+  const colorMap: Record<string, string> = {
+    'Pending': 'bg-gray-100 text-gray-800',
+    'Backlog': 'bg-yellow-100 text-yellow-800',
     'In Progress': 'bg-blue-100 text-blue-800',
-    Blocked: 'bg-red-100 text-red-800',
-    Review: 'bg-purple-100 text-purple-800',
-    Done: 'bg-green-100 text-green-800',
+    'Blocked': 'bg-red-100 text-red-800',
+    'Review': 'bg-purple-100 text-purple-800',
+    'Done': 'bg-green-100 text-green-800',
   };
-  return colors[status] || 'bg-gray-100 text-gray-800';
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorMap[status] || 'bg-gray-100 text-gray-800'}`}>
+      {status}
+    </span>
+  );
 };
 
-/** Upload a file to Supabase Storage; returns public URL */
-async function uploadFileToSupabase(file: File): Promise<{ url: string; key?: string }> {
-  try {
-    const { url, path } = await uploadFile(file, 'materials');
-    return { url, key: path };
-  } catch (error) {
-    console.error('Upload failed:', error);
-    // Fallback to data URL for immediate preview
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-    return { 
-      url: dataUrl, 
-      key: `fallback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` 
-    };
-  }
-}
-
-// ========================================================
-// Task Modal
-// ========================================================
-const TaskModal: React.FC<{
-  task: Partial<Task>;
-  onClose: () => void;
-  onSave: (task: Partial<Task>) => void;
-}> = ({ task, onClose, onSave }) => {
+// Task Modal Component
+const TaskModal = ({ 
+  task, 
+  onClose, 
+  onSave, 
+  isLoading 
+}: { 
+  task: Partial<Task>; 
+  onClose: () => void; 
+  onSave: (task: Partial<Task>) => Promise<void>;
+  isLoading: boolean;
+}) => {
   const [formData, setFormData] = useState(task);
-  const inputClass =
-    'w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {task.id ? 'Edit' : 'Create'} Task
-          </h3>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
-            <XIcon />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Task Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              id="name"
-              value={(formData as any).name || ''}
-              onChange={handleChange}
-              className={inputClass}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="type"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Type
-              </label>
-              <select
-                name="type"
-                id="type"
-                value={(formData as any).type || ''}
-                onChange={handleChange}
-                className={inputClass}
-              >
-                <option value="">Select type</option>
-                {TASK_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="status"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Status
-              </label>
-              <select
-                name="status"
-                id="status"
-                value={(formData as any).status || ''}
-                onChange={handleChange}
-                className={inputClass}
-              >
-                <option value="">Select status</option>
-                {TASK_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="startDate"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Start Date
-              </label>
-              <input
-                type="date"
-                name="startDate"
-                id="startDate"
-                value={(formData as any).startDate || ''}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="dueDate"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Due Date
-              </label>
-              <input
-                type="date"
-                name="dueDate"
-                id="dueDate"
-                value={(formData as any).dueDate || ''}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="owner"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Owner
-              </label>
-              <input
-                type="text"
-                name="owner"
-                id="owner"
-                value={(formData as any).owner || ''}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="cost"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Cost (₱)
-              </label>
-              <input
-                type="number"
-                name="cost"
-                id="cost"
-                value={(formData as any).cost || ''}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="notes"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Notes
-            </label>
-            <textarea
-              name="notes"
-              id="notes"
-              rows={3}
-              value={(formData as any).notes || ''}
-              onChange={handleChange}
-              className={inputClass}
-            />
-          </div>
-        </form>
-
-        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Save Task
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ========================================================
-// Labor Modal
-// ========================================================
-const LaborModal: React.FC<{
-  labor: Partial<Labor>;
-  onClose: () => void;
-  onSave: (labor: Partial<Labor>) => void;
-}> = ({ labor, onClose, onSave }) => {
-  const [formData, setFormData] = useState(labor);
-  const inputClass =
-    'w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    const newData: any = { ...formData, [name]: value };
-
-    if (name === 'rate' || name === 'qty') {
-      const rate = parseFloat(
-        name === 'rate' ? value : (formData as any).rate?.toString() || '0'
-      );
-      const qty = parseFloat(
-        name === 'qty' ? value : (formData as any).qty?.toString() || '0'
-      );
-      (newData as any).cost = rate * qty;
-    }
-    setFormData(newData);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {(labor as any).id ? 'Edit' : 'Create'} Labor Entry
-          </h3>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
-            <XIcon />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="crewRole"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Crew Role
-              </label>
-              <input
-                type="text"
-                name="crewRole"
-                id="crewRole"
-                value={(formData as any).crewRole || ''}
-                onChange={handleChange}
-                className={inputClass}
-                required
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="workers"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Workers
-              </label>
-              <input
-                type="text"
-                name="workers"
-                id="workers"
-                value={(formData as any).workers || ''}
-                onChange={handleChange}
-                className={inputClass}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label
-                htmlFor="rateType"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Rate Type
-              </label>
-              <select
-                name="rateType"
-                id="rateType"
-                value={(formData as any).rateType || ''}
-                onChange={handleChange}
-                className={inputClass}
-              >
-                <option value="">Select type</option>
-                {LABOR_RATE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="rate"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Rate (₱)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="rate"
-                id="rate"
-                value={(formData as any).rate || ''}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="qty"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Quantity
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="qty"
-                id="qty"
-                value={(formData as any).qty || ''}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="startDate"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Start Date
-              </label>
-              <input
-                type="date"
-                name="startDate"
-                id="startDate"
-                value={(formData as any).startDate || ''}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="endDate"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                End Date
-              </label>
-              <input
-                type="date"
-                name="endDate"
-                id="endDate"
-                value={(formData as any).endDate || ''}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Total Cost: ₱{(((formData as any).cost || 0) as number).toLocaleString()}
-            </label>
-          </div>
-
-          <div>
-            <label
-              htmlFor="supplier"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Supplier
-            </label>
-            <input
-              type="text"
-              name="supplier"
-              id="supplier"
-              value={(formData as any).supplier || ''}
-              onChange={handleChange}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="notes"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Notes
-            </label>
-            <textarea
-              name="notes"
-              id="notes"
-              rows={3}
-              value={(formData as any).notes || ''}
-              onChange={handleChange}
-              className={inputClass}
-            />
-          </div>
-        </form>
-
-        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Save Labor
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ========================================================
-/** Material Modal — Image URL or local file upload to Sevalla */
-// ========================================================
-const MaterialModal: React.FC<{
-  material: Partial<Material>;
-  onClose: () => void;
-  onSave: (material: Partial<Material>) => void;
-}> = ({ material, onClose, onSave }) => {
-  const [formData, setFormData] = useState(material);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const inputClass =
-    'w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    const newData: any = { ...(formData as any), [name]: value };
-
-    if (name === 'unitCost' || name === 'qty') {
-      const unitCost = parseFloat(
-        name === 'unitCost' ? value : ((formData as any).unitCost ?? '').toString() || '0'
-      );
-      const qty = parseFloat(
-        name === 'qty' ? value : ((formData as any).qty ?? '').toString() || '0'
-      );
-      newData.totalCost = unitCost * qty;
-    }
-    setFormData(newData);
-  };
-
-  // Image URL typed by user
-  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
-    setFormData((prev) => ({ ...(prev as any), imageUrl: v }));
-    setPreview(v || null);
-    setSelectedFile(null);
-  };
-
-  // Local file upload – keep preview with Object URL (faster than Base64)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (!file) {
-      setSelectedFile(null);
-      setPreview(null);
-      return;
-    }
-    setSelectedFile(file);
-    const objUrl = URL.createObjectURL(file);
-    setPreview(objUrl);
-    // Do not set imageUrl here; we only set it after successful upload
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      setSaving(true);
-
-      let imageUrl = (formData as any).imageUrl as string | undefined;
-
-      // If a file is selected, upload it and use the returned URL
-      if (selectedFile) {
-        const { url } = await uploadFileToSupabase(selectedFile);
-        imageUrl = url;
-      }
-
-      const payload = {
-        ...(formData as any),
-        imageUrl: imageUrl || '',
-      };
-
-      onSave(payload);
-      setSaving(false);
-    } catch (err: any) {
-      setSaving(false);
-      alert(err?.message || 'Upload failed');
-    }
+    await onSave(formData);
   };
 
+  const inputClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {(material as any).id ? 'Edit' : 'Create'} Material Entry
-          </h3>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900">{task.id ? 'Edit' : 'Create'} Task</h3>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100" disabled={isLoading}>
             <XIcon />
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           <div>
-            <label
-              htmlFor="item"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Item Name
-            </label>
-            <input
-              type="text"
-              name="item"
-              id="item"
-              value={(formData as any).item || ''}
-              onChange={handleChange}
-              className={inputClass}
-              required
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Task Name</label>
+            <input 
+              type="text" 
+              name="name" 
+              id="name" 
+              value={formData.name || ''} 
+              onChange={handleChange} 
+              className={inputClass} 
+              required 
+              disabled={isLoading}
             />
           </div>
-
-          {/* Image URL + Upload */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="imageUrl"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Image URL
-              </label>
-              <input
-                type="url"
-                name="imageUrl"
-                id="imageUrl"
-                placeholder="https://example.com/image.jpg"
-                value={(formData as any).imageUrl || ''}
-                onChange={handleImageUrlChange}
-                className={inputClass}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Paste a direct image link, or use file upload on the right.
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Upload image
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border file:border-gray-300 file:bg-white hover:file:bg-gray-50"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Selecting a file will upload to Sevalla on save.
-              </p>
-            </div>
-          </div>
-
-          {(preview || (formData as any).imageUrl) ? (
-            <div className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={preview || (formData as any).imageUrl}
-                alt="Preview"
-                className="h-20 w-20 object-cover rounded-md border border-gray-200"
-              />
-              <span className="text-xs text-gray-500">Preview</span>
-            </div>
-          ) : null}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="category"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Category
-              </label>
-              <select
-                name="category"
-                id="category"
-                value={(formData as any).category || ''}
-                onChange={handleChange}
-                className={inputClass}
-              >
-                <option value="">Select category</option>
-                {MATERIAL_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
+              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <select name="type" id="type" value={formData.type || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
+                <option value="">Select type</option>
+                <option value="Design">Design</option>
+                <option value="Site Prep">Site Prep</option>
+                <option value="Foundation">Foundation</option>
+                <option value="Structure">Structure</option>
+                <option value="MEP">MEP</option>
+                <option value="Finish">Finish</option>
+                <option value="Inspection">Inspection</option>
               </select>
             </div>
             <div>
-              <label
-                htmlFor="unit"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Unit
-              </label>
-              <select
-                name="unit"
-                id="unit"
-                value={(formData as any).unit || ''}
-                onChange={handleChange}
-                className={inputClass}
-              >
-                <option value="">Select unit</option>
-                {MATERIAL_UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select name="status" id="status" value={formData.status || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
+                <option value="Pending">Pending</option>
+                <option value="Backlog">Backlog</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Blocked">Blocked</option>
+                <option value="Review">Review</option>
+                <option value="Done">Done</option>
               </select>
             </div>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="owner" className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
+              <input 
+                type="text" 
+                name="owner" 
+                id="owner" 
+                value={formData.owner || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+              <input 
+                type="date" 
+                name="dueDate" 
+                id="dueDate" 
+                value={formData.dueDate || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="estHours" className="block text-sm font-medium text-gray-700 mb-1">Estimated Hours</label>
+              <input 
+                type="number" 
+                name="estHours" 
+                id="estHours" 
+                value={formData.estHours || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                min="0" 
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label htmlFor="cost" className="block text-sm font-medium text-gray-700 mb-1">Cost (₱)</label>
+              <input 
+                type="number" 
+                name="cost" 
+                id="cost" 
+                value={formData.cost || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                min="0" 
+                step="0.01" 
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea 
+              name="notes" 
+              id="notes" 
+              rows={3} 
+              value={formData.notes || ''} 
+              onChange={handleChange} 
+              className={inputClass} 
+              disabled={isLoading}
+            />
+          </div>
+          <div className="flex items-center">
+            <input 
+              type="checkbox" 
+              name="paid" 
+              id="paid" 
+              checked={formData.paid || false} 
+              onChange={handleChange} 
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+              disabled={isLoading}
+            />
+            <label htmlFor="paid" className="ml-2 block text-sm text-gray-900">Paid</label>
+          </div>
+        </form>
+        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors" 
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            onClick={handleSubmit} 
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50" 
+            disabled={isLoading}
+          >
+            {isLoading ? 'Saving...' : 'Save Task'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
+// Labor Modal Component
+const LaborModal = ({ 
+  labor, 
+  onClose, 
+  onSave, 
+  isLoading 
+}: { 
+  labor: Partial<Labor>; 
+  onClose: () => void; 
+  onSave: (labor: Partial<Labor>) => Promise<void>;
+  isLoading: boolean;
+}) => {
+  const [formData, setFormData] = useState(labor);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    
+    setFormData(prev => {
+      const updated = { ...prev, [name]: newValue };
+      
+      // Auto-calculate cost when rate or qty changes
+      if (name === 'rate' || name === 'qty') {
+        const rate = name === 'rate' ? parseFloat(value) || 0 : prev.rate || 0;
+        const qty = name === 'qty' ? parseFloat(value) || 0 : prev.qty || 0;
+        updated.cost = rate * qty;
+      }
+      
+      return updated;
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSave(formData);
+  };
+
+  const inputClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center p-4 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">{labor.id ? 'Edit' : 'Create'} Labor Entry</h3>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100" disabled={isLoading}>
+            <XIcon />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="crewRole" className="block text-sm font-medium text-gray-700 mb-1">Crew Role</label>
+              <input 
+                type="text" 
+                name="crewRole" 
+                id="crewRole" 
+                value={formData.crewRole || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                required 
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label htmlFor="workers" className="block text-sm font-medium text-gray-700 mb-1">Workers</label>
+              <input 
+                type="text" 
+                name="workers" 
+                id="workers" 
+                value={formData.workers || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                required 
+                disabled={isLoading}
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label
-                htmlFor="qty"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Quantity
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="qty"
-                id="qty"
-                value={(formData as any).qty || ''}
-                onChange={handleChange}
-                className={inputClass}
+              <label htmlFor="rateType" className="block text-sm font-medium text-gray-700 mb-1">Rate Type</label>
+              <select name="rateType" id="rateType" value={formData.rateType || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
+                <option value="Daily">Daily</option>
+                <option value="Hourly">Hourly</option>
+                <option value="Contract">Contract</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="rate" className="block text-sm font-medium text-gray-700 mb-1">Rate (₱)</label>
+              <input 
+                type="number" 
+                name="rate" 
+                id="rate" 
+                value={formData.rate || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                min="0" 
+                step="0.01" 
+                disabled={isLoading}
               />
             </div>
             <div>
-              <label
-                htmlFor="unitCost"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Unit Cost (₱)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="unitCost"
-                id="unitCost"
-                value={(formData as any).unitCost || ''}
-                onChange={handleChange}
-                className={inputClass}
+              <label htmlFor="qty" className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+              <input 
+                type="number" 
+                name="qty" 
+                id="qty" 
+                value={formData.qty || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                min="0" 
+                step="0.01" 
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input 
+                type="date" 
+                name="startDate" 
+                id="startDate" 
+                value={formData.startDate || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                disabled={isLoading}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Total Cost
-              </label>
-              <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700">
-                ₱{(((formData as any).totalCost || 0) as number).toLocaleString()}
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input 
+                type="date" 
+                name="endDate" 
+                id="endDate" 
+                value={formData.endDate || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="supplier" className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+            <input 
+              type="text" 
+              name="supplier" 
+              id="supplier" 
+              value={formData.supplier || ''} 
+              onChange={handleChange} 
+              className={inputClass} 
+              disabled={isLoading}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Total Cost: ₱{(formData.cost || 0).toLocaleString()}</label>
+          </div>
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea 
+              name="notes" 
+              id="notes" 
+              rows={3} 
+              value={formData.notes || ''} 
+              onChange={handleChange} 
+              className={inputClass} 
+              disabled={isLoading}
+            />
+          </div>
+          <div className="flex items-center">
+            <input 
+              type="checkbox" 
+              name="paid" 
+              id="paid" 
+              checked={formData.paid || false} 
+              onChange={handleChange} 
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+              disabled={isLoading}
+            />
+            <label htmlFor="paid" className="ml-2 block text-sm text-gray-900">Paid</label>
+          </div>
+        </form>
+        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors" 
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            onClick={handleSubmit} 
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50" 
+            disabled={isLoading}
+          >
+            {isLoading ? 'Saving...' : 'Save Labor'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Material Modal Component
+const MaterialModal = ({ 
+  material, 
+  onClose, 
+  onSave, 
+  isLoading 
+}: { 
+  material: Partial<Material>; 
+  onClose: () => void; 
+  onSave: (material: Partial<Material>) => Promise<void>;
+  isLoading: boolean;
+}) => {
+  const [formData, setFormData] = useState(material);
+  const [uploading, setUploading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    
+    setFormData(prev => {
+      const updated = { ...prev, [name]: newValue };
+      
+      // Auto-calculate total cost when qty or unitCost changes
+      if (name === 'qty' || name === 'unitCost') {
+        const qty = name === 'qty' ? parseFloat(value) || 0 : prev.qty || 0;
+        const unitCost = name === 'unitCost' ? parseFloat(value) || 0 : prev.unitCost || 0;
+        updated.totalCost = qty * unitCost;
+      }
+      
+      return updated;
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const { url } = await uploadFile(file, 'materials');
+      setFormData(prev => ({ 
+        ...prev, 
+        attachment: { type: 'image', value: url, name: file.name }
+      }));
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSave(formData);
+  };
+
+  const inputClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center p-4 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">{material.id ? 'Edit' : 'Create'} Material Entry</h3>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100" disabled={isLoading}>
+            <XIcon />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+          <div>
+            <label htmlFor="item" className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+            <input 
+              type="text" 
+              name="item" 
+              id="item" 
+              value={formData.item || ''} 
+              onChange={handleChange} 
+              className={inputClass} 
+              required 
+              disabled={isLoading}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <input 
+                  type="url" 
+                  name="imageUrl" 
+                  placeholder="https://example.com/image.jpg" 
+                  value={(formData as any).imageUrl || ''} 
+                  onChange={handleChange} 
+                  className={inputClass} 
+                  disabled={isLoading}
+                />
+                <p className="text-xs text-gray-500 mt-1">Paste a direct image link, or use file upload on the right.</p>
+              </div>
+              <div className="flex-shrink-0">
+                <label className="flex items-center justify-center w-32 h-10 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 disabled:opacity-50">
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileUpload} 
+                    className="hidden" 
+                    disabled={isLoading || uploading}
+                  />
+                  <UploadIcon className="h-4 w-4 mr-2" />
+                  <span className="text-sm">{uploading ? 'Uploading...' : 'Choose File'}</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1 text-center">
+                  {uploading ? 'Uploading to Supabase...' : 'Upload to Supabase Storage'}
+                </p>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="supplier"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Supplier
-              </label>
-              <input
-                type="text"
-                name="supplier"
-                id="supplier"
-                value={(formData as any).supplier || ''}
-                onChange={handleChange}
-                className={inputClass}
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <select name="category" id="category" value={formData.category || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
+                <option value="">Select category</option>
+                <option value="Aggregates">Aggregates</option>
+                <option value="Timber">Timber</option>
+                <option value="Steel">Steel</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Plumbing">Plumbing</option>
+                <option value="Finishes">Finishes</option>
+                <option value="Fixtures">Fixtures</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="unit" className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+              <select name="unit" id="unit" value={formData.unit || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
+                <option value="">Select unit</option>
+                <option value="pc">pc</option>
+                <option value="box">box</option>
+                <option value="m">m</option>
+                <option value="sqm">sqm</option>
+                <option value="kg">kg</option>
+                <option value="ton">ton</option>
+                <option value="liter">liter</option>
+                <option value="gallon">gallon</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="qty" className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+              <input 
+                type="number" 
+                name="qty" 
+                id="qty" 
+                value={formData.qty || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                min="0" 
+                step="0.01" 
+                disabled={isLoading}
               />
             </div>
             <div>
-              <label
-                htmlFor="deliveryEta"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Delivery ETA
-              </label>
-              <input
-                type="date"
-                name="deliveryEta"
-                id="deliveryEta"
-                value={(formData as any).deliveryEta || ''}
-                onChange={handleChange}
-                className={inputClass}
+              <label htmlFor="unitCost" className="block text-sm font-medium text-gray-700 mb-1">Unit Cost (₱)</label>
+              <input 
+                type="number" 
+                name="unitCost" 
+                id="unitCost" 
+                value={formData.unitCost || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                min="0" 
+                step="0.01" 
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Total Cost</label>
+              <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-900">
+                ₱{(formData.totalCost || 0).toLocaleString()}
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="supplier" className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+              <input 
+                type="text" 
+                name="supplier" 
+                id="supplier" 
+                value={formData.supplier || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label htmlFor="deliveryEta" className="block text-sm font-medium text-gray-700 mb-1">Delivery ETA</label>
+              <input 
+                type="date" 
+                name="deliveryEta" 
+                id="deliveryEta" 
+                value={formData.deliveryEta || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                disabled={isLoading}
               />
             </div>
           </div>
-
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <select name="location" id="location" value={formData.location || 'Site'} onChange={handleChange} className={inputClass} disabled={isLoading}>
+                <option value="Site">Site</option>
+                <option value="Warehouse">Warehouse</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="leadTimeDays" className="block text-sm font-medium text-gray-700 mb-1">Lead Time (Days)</label>
+              <input 
+                type="number" 
+                name="leadTimeDays" 
+                id="leadTimeDays" 
+                value={formData.leadTimeDays || ''} 
+                onChange={handleChange} 
+                className={inputClass} 
+                min="0" 
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+          
           <div>
-            <label
-              htmlFor="notes"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Notes
-            </label>
-            <textarea
-              name="notes"
-              id="notes"
-              rows={3}
-              value={(formData as any).notes || ''}
-              onChange={handleChange}
-              className={inputClass}
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea 
+              name="notes" 
+              id="notes" 
+              rows={3} 
+              value={formData.notes || ''} 
+              onChange={handleChange} 
+              className={inputClass} 
+              disabled={isLoading}
             />
           </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <input 
+                type="checkbox" 
+                name="received" 
+                id="received" 
+                checked={formData.received || false} 
+                onChange={handleChange} 
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                disabled={isLoading}
+              />
+              <label htmlFor="received" className="ml-2 block text-sm text-gray-900">Received</label>
+            </div>
+            <div className="flex items-center">
+              <input 
+                type="checkbox" 
+                name="paid" 
+                id="paid" 
+                checked={formData.paid || false} 
+                onChange={handleChange} 
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                disabled={isLoading}
+              />
+              <label htmlFor="paid" className="ml-2 block text-sm text-gray-900">Paid</label>
+            </div>
+          </div>
         </form>
-
         <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
-          <button
-            type="button"
-            onClick={onClose}
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors"
-            disabled={saving}
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors" 
+            disabled={isLoading}
           >
             Cancel
           </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-60"
-            disabled={saving}
+          <button 
+            type="submit" 
+            onClick={handleSubmit} 
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50" 
+            disabled={isLoading || uploading}
           >
-            {saving ? 'Saving…' : 'Save Material'}
+            {isLoading ? 'Saving...' : 'Save Material'}
           </button>
         </div>
       </div>
@@ -921,60 +734,7 @@ const MaterialModal: React.FC<{
   );
 };
 
-// ========================================================
-// Image Preview Modal (clickable thumbnail → large)
-// ========================================================
-const ImagePreviewModal: React.FC<{
-  src: string;
-  alt?: string;
-  onClose: () => void;
-}> = ({ src, alt = 'Material image', onClose }) => (
-  <div
-    className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-    onClick={onClose}
-  >
-    <div
-      className="relative bg-white rounded-xl shadow-2xl max-w-4xl w-full overflow-hidden"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex justify-between items-center px-4 py-3 border-b">
-        <div className="text-sm text-gray-600 truncate pr-4">{alt}</div>
-        <div className="flex gap-2">
-          <a
-            href={src}
-            download
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700"
-          >
-            Download
-          </a>
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-
-      <div className="p-3 bg-gray-50">
-        <div className="w-full max-h-[70vh] overflow-auto rounded-lg bg-white">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt={alt}
-            className="block max-w-full h-auto mx-auto select-none"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// ========================================================
-// Main Module
-// ========================================================
+// Main Component
 const VincenteHouseModule: React.FC<{
   project: { id: string; name: string };
   role: UserRole;
@@ -982,556 +742,585 @@ const VincenteHouseModule: React.FC<{
   projectData: ProjectData;
   onUpdateProjectData: (data: ProjectData) => void;
 }> = ({ project, role, showToast, projectData, onUpdateProjectData }) => {
-  const [activeTab, setActiveTab] = useState<'tasks' | 'labor' | 'materials'>(
-    'tasks'
-  );
+  const [activeTab, setActiveTab] = useState<'tasks' | 'labor' | 'materials'>('tasks');
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('');
+  
+  // Modal states
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
+  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  
+  // Loading states
   const [isLoading, setIsLoading] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // NEW: image preview state
-  const [imagePreview, setImagePreview] = useState<{
-    src: string;
-    alt?: string;
-  } | null>(null);
+  // Refresh data from Supabase
+  const refreshData = async () => {
+    try {
+      setIsRefreshing(true);
+      setError(null);
+      
+      const [tasks, labor, materials] = await Promise.all([
+        taskOperations.getByProject(project.id),
+        laborOperations.getByProject(project.id),
+        materialOperations.getByProject(project.id)
+      ]);
+      
+      onUpdateProjectData({ tasks, labor, materials });
+    } catch (err) {
+      console.error('Error refreshing data:', err);
+      setError('Failed to refresh data from database');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
-  const getMaterialImageSrc = (m: any) => m.imageUrl?.trim() || '';
-
-  // Load data from Supabase on component mount
+  // Load data on component mount
   useEffect(() => {
-    const loadProjectData = async () => {
-      if (dataLoaded) return;
-      
-      try {
-        setIsLoading(true);
-        const data = await fetchProjectData(project.id);
-        onUpdateProjectData(data);
-        setDataLoaded(true);
-      } catch (error) {
-        console.error('Failed to load project data:', error);
-        showToast('Failed to load project data. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadProjectData();
-  }, [project.id, dataLoaded, onUpdateProjectData, showToast]);
-
-  // searches
-  const filteredTasks = useMemo(
-    () =>
-      projectData.tasks.filter(
-        (t) =>
-          t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          t.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          t.status.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [projectData.tasks, searchTerm]
-  );
-
-  const filteredLabor = useMemo(
-    () =>
-      projectData.labor.filter(
-        (l) =>
-          l.crewRole.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          l.workers.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [projectData.labor, searchTerm]
-  );
-
-  const filteredMaterials = useMemo(
-    () =>
-      projectData.materials.filter(
-        (m) =>
-          m.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          m.category.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [projectData.materials, searchTerm]
-  );
-
-  // CRUD
-  const handleAdd = () => {
-    if (isLoading) return;
-    setEditingItem({});
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (item: any) => {
-    if (role !== 'admin' || isLoading) return;
-    setEditingItem(item);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    if (role !== 'admin' || isLoading) return;
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      deleteItem(id);
+    if (!projectData.tasks.length && !projectData.labor.length && !projectData.materials.length) {
+      refreshData();
     }
-  };
+  }, [project.id]);
 
-  const deleteItem = async (id: string) => {
+  // Task operations
+  const handleSaveTask = async (taskData: Partial<Task>) => {
     try {
       setIsLoading(true);
       
-      if (activeTab === 'tasks') {
-        await taskOperations.delete(id);
-      } else if (activeTab === 'labor') {
-        await laborOperations.delete(id);
+      const taskToSave = {
+        ...taskData,
+        projectId: project.id,
+        order: taskData.order || projectData.tasks.length
+      };
+
+      let savedTask: Task;
+      if (taskData.id) {
+        savedTask = await taskOperations.update(taskData.id, taskToSave);
       } else {
-        await materialOperations.delete(id);
+        savedTask = await taskOperations.create(taskToSave);
       }
+
+      // Update local state
+      const updatedTasks = taskData.id 
+        ? projectData.tasks.map(t => t.id === taskData.id ? savedTask : t)
+        : [...projectData.tasks, savedTask];
       
-      // Update local state
-      const newData = { ...projectData };
-      if (activeTab === 'tasks') {
-        newData.tasks = newData.tasks.filter((t) => t.id !== id);
-      } else if (activeTab === 'labor') {
-        newData.labor = newData.labor.filter((l) => l.id !== id);
-      } else {
-        newData.materials = newData.materials.filter((m) => m.id !== id);
-      }
-      onUpdateProjectData(newData);
-      showToast('Item deleted successfully.');
-    } catch (error) {
-      console.error('Delete failed:', error);
-      showToast('Failed to delete item. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      onUpdateProjectData({
+        ...projectData,
+        tasks: updatedTasks
+      });
 
-  const handleSave = async (item: any) => {
-    try {
-      setIsLoading(true);
-      const itemWithProjectId = { ...item, projectId: project.id };
-      let savedItem;
-
-      if (activeTab === 'tasks') {
-        savedItem = item.id 
-          ? await taskOperations.update(item.id, itemWithProjectId)
-          : await taskOperations.create(itemWithProjectId);
-      } else if (activeTab === 'labor') {
-        savedItem = item.id
-          ? await laborOperations.update(item.id, itemWithProjectId)
-          : await laborOperations.create(itemWithProjectId);
-      } else {
-        savedItem = item.id
-          ? await materialOperations.update(item.id, itemWithProjectId)
-          : await materialOperations.create(itemWithProjectId);
-      }
-
-      // Update local state
-      const newData = { ...projectData };
-      if (activeTab === 'tasks') {
-        newData.tasks = item.id
-          ? newData.tasks.map((t) => (t.id === item.id ? savedItem : t))
-          : [...newData.tasks, savedItem];
-      } else if (activeTab === 'labor') {
-        newData.labor = item.id
-          ? newData.labor.map((l) => (l.id === item.id ? savedItem : l))
-          : [...newData.labor, savedItem];
-      } else {
-        newData.materials = item.id
-          ? newData.materials.map((m) => (m.id === item.id ? savedItem : m))
-          : [...newData.materials, savedItem];
-      }
-
-      onUpdateProjectData(newData);
-      setIsModalOpen(false);
+      setIsTaskModalOpen(false);
       setEditingItem(null);
-      showToast(`${activeTab.slice(0, -1)} ${item.id ? 'updated' : 'created'} successfully.`);
-    } catch (error) {
-      console.error('Save failed:', error);
-      showToast('Failed to save item. Please try again.');
+      showToast(taskData.id ? 'Task updated successfully' : 'Task created successfully');
+    } catch (err) {
+      console.error('Error saving task:', err);
+      showToast('Failed to save task');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // renderers
-  const renderTasksTable = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left text-gray-600">
-        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 min-w-[200px]">Task Name</th>
-            <th className="px-6 py-3 min-w-[100px]">Type</th>
-            <th className="px-6 py-3 min-w-[120px]">Status</th>
-            <th className="px-6 py-3 min-w-[100px]">Owner</th>
-            <th className="px-6 py-3 min-w-[120px]">Due Date</th>
-            <th className="px-6 py-3 min-w-[100px]">Cost</th>
-            <th className="px-6 py-3 min-w-[100px] text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredTasks.length ? (
-            filteredTasks.map((task) => (
-              <tr key={task.id} className="bg-white border-b hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium text-gray-900">{task.name}</td>
-                <td className="px-6 py-4">{task.type}</td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                      task.status
-                    )}`}
-                  >
-                    {task.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4">{task.owner}</td>
-                <td className="px-6 py-4">{task.dueDate}</td>
-                <td className="px-6 py-4">₱{task.cost.toLocaleString()}</td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    {role === 'admin' ? (
-                      <>
-                        <button
-                          onClick={() => handleEdit(task)}
-                          disabled={isLoading}
-                          className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50"
-                        >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(task.id)}
-                          disabled={isLoading}
-                          className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50"
-                        >
-                          <TrashIcon />
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-xs text-gray-400 italic">Read-only</span>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={7} className="text-center py-10 text-gray-500">
-                No tasks found. {role === 'admin' && 'Click "Add Task" to get started.'}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderLaborTable = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left text-gray-600">
-        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 min-w-[120px]">Role</th>
-            <th className="px-4 py-3 min-w-[100px]">Workers</th>
-            <th className="px-4 py-3 min-w-[120px]">Rate</th>
-            <th className="px-4 py-3 min-w-[80px] text-center">Qty</th>
-            <th className="px-4 py-3 min-w-[100px] text-right">Cost</th>
-            <th className="px-4 py-3 min-w-[100px]">Date</th>
-            <th className="px-4 py-3 min-w-[100px] text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredLabor.length ? (
-            filteredLabor.map((labor) => (
-              <tr key={labor.id} className="bg-white border-b hover:bg-gray-50">
-                <td className="px-4 py-4 font-medium text-gray-900">{labor.crewRole}</td>
-                <td className="px-4 py-4">{labor.workers}</td>
-                <td className="px-4 py-4">
-                  ₱{labor.rate.toFixed(2)}/{labor.rateType.toLowerCase()}
-                </td>
-                <td className="px-4 py-4 text-center">{labor.qty}</td>
-                <td className="px-4 py-4 text-right">₱{labor.cost.toLocaleString()}</td>
-                <td className="px-4 py-4">{labor.startDate}</td>
-                <td className="px-4 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    {role === 'admin' ? (
-                      <>
-                        <button
-                          onClick={() => handleEdit(labor)}
-                          disabled={isLoading}
-                          className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50"
-                        >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(labor.id)}
-                          disabled={isLoading}
-                          className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50"
-                        >
-                          <TrashIcon />
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-xs text-gray-400 italic">Read-only</span>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={7} className="text-center py-10 text-gray-500">
-                No labor entries found. {role === 'admin' && 'Click "Add Labor" to get started.'}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const renderMaterialsTable = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left text-gray-600">
-        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-          <tr>
-            {/* Image column */}
-            <th className="px-4 py-3 w-[72px]">Image</th>
-            <th className="px-4 py-3 min-w-[200px]">Item</th>
-            <th className="px-4 py-3 min-w-[100px]">Category</th>
-            <th className="px-4 py-3 min-w-[80px] text-center">Quantity</th>
-            <th className="px-4 py-3 min-w-[100px] text-right">Unit Cost</th>
-            <th className="px-4 py-3 min-w-[100px] text-right">Total Cost</th>
-            <th className="px-4 py-3 min-w-[120px]">Supplier</th>
-            <th className="px-4 py-3 min-w-[100px] text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredMaterials.length ? (
-            filteredMaterials.map((material) => {
-              const src = getMaterialImageSrc(material);
-              return (
-                <tr key={material.id} className="bg-white border-b hover:bg-gray-50">
-                  {/* Clickable thumbnail */}
-                  <td className="px-4 py-4">
-                    {src ? (
-                      <button
-                        onClick={() => setImagePreview({ src, alt: material.item })}
-                        className="block rounded-md overflow-hidden border border-gray-200 hover:ring-2 hover:ring-blue-400 focus:ring-2 focus:ring-blue-500 transition-shadow"
-                        title="Click to preview"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={src}
-                          alt={material.item}
-                          className="w-[56px] h-[56px] object-cover"
-                        />
-                      </button>
-                    ) : (
-                      <div className="w-[56px] h-[56px] rounded-md border border-dashed border-gray-300 grid place-content-center text-[10px] text-gray-400">
-                        No image
-                      </div>
-                    )}
-                  </td>
-
-                  <td className="px-4 py-4 font-medium text-gray-900">
-                    {material.item}
-                  </td>
-                  <td className="px-4 py-4">{material.category}</td>
-                  <td className="px-4 py-4 text-center">
-                    {material.qty} {material.unit}
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    ₱{material.unitCost.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    ₱{material.totalCost.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-4">{material.supplier}</td>
-                  <td className="px-4 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      {role === 'admin' ? (
-                        <>
-                          <button
-                            onClick={() => handleEdit(material)}
-                            disabled={isLoading}
-                            className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50"
-                          >
-                            <PencilIcon />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(material.id)}
-                            disabled={isLoading}
-                            className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50"
-                          >
-                            <TrashIcon />
-                          </button>
-                        </>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">
-                          Read-only
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td colSpan={8} className="text-center py-10 text-gray-500">
-                No materials found. {role === 'admin' && 'Click "Add Material" to get started.'}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const getTabLabel = (tab: string) => {
-    const counts = {
-      tasks: projectData.tasks.length,
-      labor: projectData.labor.length,
-      materials: projectData.materials.length,
-    };
-    return `${tab.charAt(0).toUpperCase() + tab.slice(1)} (${
-      counts[tab as keyof typeof counts]
-    })`;
+  const handleDeleteTask = async (taskId: string) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    
+    try {
+      setIsLoading(true);
+      await taskOperations.delete(taskId);
+      
+      const updatedTasks = projectData.tasks.filter(t => t.id !== taskId);
+      onUpdateProjectData({
+        ...projectData,
+        tasks: updatedTasks
+      });
+      
+      showToast('Task deleted successfully');
+    } catch (err) {
+      console.error('Error deleting task:', err);
+      showToast('Failed to delete task');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const getAddButtonLabel = () =>
-    `Add ${activeTab === 'tasks' ? 'task' : activeTab === 'labor' ? 'labor' : 'material'}`;
+  // Labor operations
+  const handleSaveLabor = async (laborData: Partial<Labor>) => {
+    try {
+      setIsLoading(true);
+      
+      const laborToSave = {
+        ...laborData,
+        projectId: project.id
+      };
+
+      let savedLabor: Labor;
+      if (laborData.id) {
+        savedLabor = await laborOperations.update(laborData.id, laborToSave);
+      } else {
+        savedLabor = await laborOperations.create(laborToSave);
+      }
+
+      // Update local state
+      const updatedLabor = laborData.id 
+        ? projectData.labor.map(l => l.id === laborData.id ? savedLabor : l)
+        : [...projectData.labor, savedLabor];
+      
+      onUpdateProjectData({
+        ...projectData,
+        labor: updatedLabor
+      });
+
+      setIsLaborModalOpen(false);
+      setEditingItem(null);
+      showToast(laborData.id ? 'Labor entry updated successfully' : 'Labor entry created successfully');
+    } catch (err) {
+      console.error('Error saving labor:', err);
+      showToast('Failed to save labor entry');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteLabor = async (laborId: string) => {
+    if (!window.confirm('Are you sure you want to delete this labor entry?')) return;
+    
+    try {
+      setIsLoading(true);
+      await laborOperations.delete(laborId);
+      
+      const updatedLabor = projectData.labor.filter(l => l.id !== laborId);
+      onUpdateProjectData({
+        ...projectData,
+        labor: updatedLabor
+      });
+      
+      showToast('Labor entry deleted successfully');
+    } catch (err) {
+      console.error('Error deleting labor:', err);
+      showToast('Failed to delete labor entry');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Material operations
+  const handleSaveMaterial = async (materialData: Partial<Material>) => {
+    try {
+      setIsLoading(true);
+      
+      const materialToSave = {
+        ...materialData,
+        projectId: project.id
+      };
+
+      let savedMaterial: Material;
+      if (materialData.id) {
+        savedMaterial = await materialOperations.update(materialData.id, materialToSave);
+      } else {
+        savedMaterial = await materialOperations.create(materialToSave);
+      }
+
+      // Update local state
+      const updatedMaterials = materialData.id 
+        ? projectData.materials.map(m => m.id === materialData.id ? savedMaterial : m)
+        : [...projectData.materials, savedMaterial];
+      
+      onUpdateProjectData({
+        ...projectData,
+        materials: updatedMaterials
+      });
+
+      setIsMaterialModalOpen(false);
+      setEditingItem(null);
+      showToast(materialData.id ? 'Material updated successfully' : 'Material created successfully');
+    } catch (err) {
+      console.error('Error saving material:', err);
+      showToast('Failed to save material');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId: string) => {
+    if (!window.confirm('Are you sure you want to delete this material?')) return;
+    
+    try {
+      setIsLoading(true);
+      await materialOperations.delete(materialId);
+      
+      const updatedMaterials = projectData.materials.filter(m => m.id !== materialId);
+      onUpdateProjectData({
+        ...projectData,
+        materials: updatedMaterials
+      });
+      
+      showToast('Material deleted successfully');
+    } catch (err) {
+      console.error('Error deleting material:', err);
+      showToast('Failed to delete material');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter data based on search and status
+  const filteredTasks = useMemo(() => {
+    return projectData.tasks.filter(task => {
+      const matchesSearch = task.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           task.owner.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = !statusFilter || task.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [projectData.tasks, searchTerm, statusFilter]);
+
+  const filteredLabor = useMemo(() => {
+    return projectData.labor.filter(labor => {
+      const matchesSearch = labor.crewRole.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           labor.workers.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    });
+  }, [projectData.labor, searchTerm]);
+
+  const filteredMaterials = useMemo(() => {
+    return projectData.materials.filter(material => {
+      const matchesSearch = material.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           material.supplier.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    });
+  }, [projectData.materials, searchTerm]);
+
+  if (error) {
+    return <ErrorMessage message={error} onRetry={refreshData} />;
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200/80">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="p-4 sm:p-6 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">{project.name}</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Manage tasks, labor, and materials for this project.
-            </p>
-          </div>
-          {role === 'admin' && (
-            <button
-              onClick={handleAdd}
-              disabled={isLoading}
-              className="flex items-center gap-2 text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              <PlusIcon />
-              <span>{getAddButtonLabel()}</span>
-            </button>
-          )}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">{project.name}</h2>
+          <p className="text-sm text-gray-500 mt-1">Manage tasks, labor, and materials for this project.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={refreshData}
+            disabled={isRefreshing}
+            className="text-sm bg-gray-100 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="flex space-x-8 px-4 sm:px-6" aria-label="Tabs">
-          {(['tasks', 'labor', 'materials'] as const).map((tab) => (
+        <nav className="-mb-px flex space-x-8">
+          {[
+            { key: 'tasks', label: 'Tasks', count: projectData.tasks.length },
+            { key: 'labor', label: 'Labor', count: projectData.labor.length },
+            { key: 'materials', label: 'Materials', count: projectData.materials.length }
+          ].map(tab => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === tab
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === tab.key
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {getTabLabel(tab)}
+              {tab.label} ({tab.count})
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Controls */}
-      <div className="p-4 sm:p-6 border-b border-gray-200 bg-gray-50">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="relative flex-1 max-w-md">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`p-2 rounded-md transition-colors ${
-                viewMode === 'table'
-                  ? 'bg-blue-100 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <TableIcon />
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-colors ${
-                viewMode === 'grid'
-                  ? 'bg-blue-100 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <ViewGridIcon />
-            </button>
-          </div>
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1 max-w-md">
+          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
+        
+        {activeTab === 'tasks' && (
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Status</option>
+            <option value="Pending">Pending</option>
+            <option value="Backlog">Backlog</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Blocked">Blocked</option>
+            <option value="Review">Review</option>
+            <option value="Done">Done</option>
+          </select>
+        )}
+
+        {role === 'admin' && (
+          <button
+            onClick={() => {
+              setEditingItem(null);
+              if (activeTab === 'tasks') setIsTaskModalOpen(true);
+              else if (activeTab === 'labor') setIsLaborModalOpen(true);
+              else if (activeTab === 'materials') setIsMaterialModalOpen(true);
+            }}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <PlusIcon />
+            Add {activeTab.slice(0, -1)}
+          </button>
+        )}
       </div>
 
       {/* Content */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden min-h-[400px]">
-        {isLoading ? (
-          <LoadingSpinner />
-        ) : (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+        {isRefreshing && <LoadingSpinner />}
+        
+        {!isRefreshing && (
           <>
-            {activeTab === 'tasks' && renderTasksTable()}
-            {activeTab === 'labor' && renderLaborTable()}
-            {activeTab === 'materials' && renderMaterialsTable()}
+            {/* Tasks Tab */}
+            {activeTab === 'tasks' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-600">
+                  <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3">Task</th>
+                      <th scope="col" className="px-6 py-3">Type</th>
+                      <th scope="col" className="px-6 py-3">Status</th>
+                      <th scope="col" className="px-6 py-3">Owner</th>
+                      <th scope="col" className="px-6 py-3">Due Date</th>
+                      <th scope="col" className="px-6 py-3">Cost</th>
+                      <th scope="col" className="px-6 py-3">Paid</th>
+                      {role === 'admin' && <th scope="col" className="px-6 py-3 text-right">Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTasks.length > 0 ? filteredTasks.map(task => (
+                      <tr key={task.id} className="bg-white border-b hover:bg-gray-50">
+                        <td className="px-6 py-4 font-medium text-gray-900">{task.name}</td>
+                        <td className="px-6 py-4">{task.type}</td>
+                        <td className="px-6 py-4"><StatusPill status={task.status} /></td>
+                        <td className="px-6 py-4">{task.owner}</td>
+                        <td className="px-6 py-4">{task.dueDate}</td>
+                        <td className="px-6 py-4">₱{task.cost.toLocaleString()}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${task.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {task.paid ? 'Paid' : 'Unpaid'}
+                          </span>
+                        </td>
+                        {role === 'admin' && (
+                          <td className="px-6 py-4 flex justify-end gap-2">
+                            <button 
+                              onClick={() => { setEditingItem(task); setIsTaskModalOpen(true); }}
+                              className="p-2 text-gray-500 hover:text-blue-600"
+                              disabled={isLoading}
+                            >
+                              <PencilIcon />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="p-2 text-gray-500 hover:text-red-600"
+                              disabled={isLoading}
+                            >
+                              <TrashIcon />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={role === 'admin' ? 8 : 7} className="text-center py-10 text-gray-500">
+                          No tasks found. {role === 'admin' && 'Click "Add task" to get started.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Labor Tab */}
+            {activeTab === 'labor' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-600">
+                  <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3">Role</th>
+                      <th scope="col" className="px-6 py-3">Workers</th>
+                      <th scope="col" className="px-6 py-3">Rate Type</th>
+                      <th scope="col" className="px-6 py-3">Rate</th>
+                      <th scope="col" className="px-6 py-3">Qty</th>
+                      <th scope="col" className="px-6 py-3">Total Cost</th>
+                      <th scope="col" className="px-6 py-3">Date</th>
+                      <th scope="col" className="px-6 py-3">Paid</th>
+                      {role === 'admin' && <th scope="col" className="px-6 py-3 text-right">Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLabor.length > 0 ? filteredLabor.map(labor => (
+                      <tr key={labor.id} className="bg-white border-b hover:bg-gray-50">
+                        <td className="px-6 py-4 font-medium text-gray-900">{labor.crewRole}</td>
+                        <td className="px-6 py-4">{labor.workers}</td>
+                        <td className="px-6 py-4">{labor.rateType}</td>
+                        <td className="px-6 py-4">₱{labor.rate.toLocaleString()}</td>
+                        <td className="px-6 py-4">{labor.qty}</td>
+                        <td className="px-6 py-4">₱{labor.cost.toLocaleString()}</td>
+                        <td className="px-6 py-4">{labor.startDate}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${labor.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {labor.paid ? 'Paid' : 'Unpaid'}
+                          </span>
+                        </td>
+                        {role === 'admin' && (
+                          <td className="px-6 py-4 flex justify-end gap-2">
+                            <button 
+                              onClick={() => { setEditingItem(labor); setIsLaborModalOpen(true); }}
+                              className="p-2 text-gray-500 hover:text-blue-600"
+                              disabled={isLoading}
+                            >
+                              <PencilIcon />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteLabor(labor.id)}
+                              className="p-2 text-gray-500 hover:text-red-600"
+                              disabled={isLoading}
+                            >
+                              <TrashIcon />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={role === 'admin' ? 9 : 8} className="text-center py-10 text-gray-500">
+                          No labor entries found. {role === 'admin' && 'Click "Add labor" to get started.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Materials Tab */}
+            {activeTab === 'materials' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-gray-600">
+                  <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3">Image</th>
+                      <th scope="col" className="px-6 py-3">Item</th>
+                      <th scope="col" className="px-6 py-3">Category</th>
+                      <th scope="col" className="px-6 py-3">Qty</th>
+                      <th scope="col" className="px-6 py-3">Unit Cost</th>
+                      <th scope="col" className="px-6 py-3">Total Cost</th>
+                      <th scope="col" className="px-6 py-3">Supplier</th>
+                      <th scope="col" className="px-6 py-3">Status</th>
+                      {role === 'admin' && <th scope="col" className="px-6 py-3 text-right">Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredMaterials.length > 0 ? filteredMaterials.map(material => (
+                      <tr key={material.id} className="bg-white border-b hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          {material.attachment?.value ? (
+                            <img 
+                              src={material.attachment.value} 
+                              alt={material.item}
+                              className="w-12 h-12 object-cover rounded-md"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center">
+                              <ImageIcon className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-gray-900">{material.item}</td>
+                        <td className="px-6 py-4">{material.category}</td>
+                        <td className="px-6 py-4">{material.qty} {material.unit}</td>
+                        <td className="px-6 py-4">₱{material.unitCost.toLocaleString()}</td>
+                        <td className="px-6 py-4">₱{material.totalCost.toLocaleString()}</td>
+                        <td className="px-6 py-4">{material.supplier}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${material.received ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                              {material.received ? 'Received' : 'Pending'}
+                            </span>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${material.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {material.paid ? 'Paid' : 'Unpaid'}
+                            </span>
+                          </div>
+                        </td>
+                        {role === 'admin' && (
+                          <td className="px-6 py-4 flex justify-end gap-2">
+                            <button 
+                              onClick={() => { setEditingItem(material); setIsMaterialModalOpen(true); }}
+                              className="p-2 text-gray-500 hover:text-blue-600"
+                              disabled={isLoading}
+                            >
+                              <PencilIcon />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteMaterial(material.id)}
+                              className="p-2 text-gray-500 hover:text-red-600"
+                              disabled={isLoading}
+                            >
+                              <TrashIcon />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={role === 'admin' ? 9 : 8} className="text-center py-10 text-gray-500">
+                          No materials found. {role === 'admin' && 'Click "Add material" to get started.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
       </div>
 
       {/* Modals */}
-      {isModalOpen && activeTab === 'tasks' && (
+      {isTaskModalOpen && (
         <TaskModal
-          task={editingItem}
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingItem(null);
-          }}
-          onSave={handleSave}
-        />
-      )}
-      {isModalOpen && activeTab === 'labor' && (
-        <LaborModal
-          labor={editingItem}
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingItem(null);
-          }}
-          onSave={handleSave}
-        />
-      )}
-      {isModalOpen && activeTab === 'materials' && (
-        <MaterialModal
-          material={editingItem}
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingItem(null);
-          }}
-          onSave={handleSave}
+          task={editingItem || { projectId: project.id }}
+          onClose={() => { setIsTaskModalOpen(false); setEditingItem(null); }}
+          onSave={handleSaveTask}
+          isLoading={isLoading}
         />
       )}
 
-      {/* Image Preview */}
-      {imagePreview && (
-        <ImagePreviewModal
-          src={imagePreview.src}
-          alt={imagePreview.alt}
-          onClose={() => setImagePreview(null)}
+      {isLaborModalOpen && (
+        <LaborModal
+          labor={editingItem || { projectId: project.id }}
+          onClose={() => { setIsLaborModalOpen(false); setEditingItem(null); }}
+          onSave={handleSaveLabor}
+          isLoading={isLoading}
+        />
+      )}
+
+      {isMaterialModalOpen && (
+        <MaterialModal
+          material={editingItem || { projectId: project.id }}
+          onClose={() => { setIsMaterialModalOpen(false); setEditingItem(null); }}
+          onSave={handleSaveMaterial}
+          isLoading={isLoading}
         />
       )}
     </div>
