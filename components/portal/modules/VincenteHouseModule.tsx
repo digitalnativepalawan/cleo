@@ -682,6 +682,7 @@ const MaterialModal: React.FC<{
 
           {formData.imageUrl ? (
             <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={formData.imageUrl}
                 alt="Preview"
@@ -858,6 +859,57 @@ const MaterialModal: React.FC<{
 };
 
 // ========================================================
+// Image Preview Modal (clickable thumbnail → large)
+// ========================================================
+const ImagePreviewModal: React.FC<{
+  src: string;
+  alt?: string;
+  onClose: () => void;
+}> = ({ src, alt = 'Material image', onClose }) => (
+  <div
+    className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    onClick={onClose}
+  >
+    <div
+      className="relative bg-white rounded-xl shadow-2xl max-w-4xl w-full overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex justify-between items-center px-4 py-3 border-b">
+        <div className="text-sm text-gray-600 truncate pr-4">{alt}</div>
+        <div className="flex gap-2">
+          <a
+            href={src}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700"
+          >
+            Download
+          </a>
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+
+      <div className="p-3 bg-gray-50">
+        <div className="w-full max-h-[70vh] overflow-auto rounded-lg bg-white">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={alt}
+            className="block max-w-full h-auto mx-auto select-none"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// ========================================================
 // Main Module
 // ========================================================
 const VincenteHouseModule: React.FC<{
@@ -875,6 +927,15 @@ const VincenteHouseModule: React.FC<{
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // NEW: image preview state
+  const [imagePreview, setImagePreview] = useState<{
+    src: string;
+    alt?: string;
+  } | null>(null);
+
+  // Optional: resolver in case we add different fields later
+  const getMaterialImageSrc = (m: any) => m.imageUrl?.trim() || '';
 
   // searches
   const filteredTasks = useMemo(
@@ -1105,8 +1166,8 @@ const VincenteHouseModule: React.FC<{
       <table className="w-full text-sm text-left text-gray-600">
         <thead className="text-xs text-gray-700 uppercase bg-gray-50">
           <tr>
-            {/* NEW: image column */}
-            <th className="px-4 py-3 min-w-[80px]">Image</th>
+            {/* Image column */}
+            <th className="px-4 py-3 w-[72px]">Image</th>
             <th className="px-4 py-3 min-w-[200px]">Item</th>
             <th className="px-4 py-3 min-w-[100px]">Category</th>
             <th className="px-4 py-3 min-w-[80px] text-center">Quantity</th>
@@ -1118,65 +1179,75 @@ const VincenteHouseModule: React.FC<{
         </thead>
         <tbody>
           {filteredMaterials.length ? (
-            filteredMaterials.map((material) => (
-              <tr key={material.id} className="bg-white border-b hover:bg-gray-50">
-                {/* NEW: image cell */}
-                <td className="px-4 py-4">
-                  {material.imageUrl ? (
-                    <img
-                      src={material.imageUrl}
-                      alt={material.item}
-                      className="h-12 w-12 object-cover rounded-md border border-gray-200"
-                    />
-                  ) : (
-                    <div className="h-12 w-12 rounded-md border border-dashed border-gray-300 flex items-center justify-center text-[10px] text-gray-400">
-                      No image
-                    </div>
-                  )}
-                </td>
-
-                <td className="px-4 py-4 font-medium text-gray-900">
-                  {material.item}
-                </td>
-                <td className="px-4 py-4">{material.category}</td>
-                <td className="px-4 py-4 text-center">
-                  {material.qty} {material.unit}
-                </td>
-                <td className="px-4 py-4 text-right">
-                  ₱{material.unitCost.toLocaleString()}
-                </td>
-                <td className="px-4 py-4 text-right">
-                  ₱{material.totalCost.toLocaleString()}
-                </td>
-                <td className="px-4 py-4">{material.supplier}</td>
-                <td className="px-4 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    {role === 'admin' ? (
-                      <>
-                        <button
-                          onClick={() => handleEdit(material)}
-                          disabled={isLoading}
-                          className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50"
-                        >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(material.id)}
-                          disabled={isLoading}
-                          className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50"
-                        >
-                          <TrashIcon />
-                        </button>
-                      </>
+            filteredMaterials.map((material) => {
+              const src = getMaterialImageSrc(material);
+              return (
+                <tr key={material.id} className="bg-white border-b hover:bg-gray-50">
+                  {/* Clickable thumbnail */}
+                  <td className="px-4 py-4">
+                    {src ? (
+                      <button
+                        onClick={() => setImagePreview({ src, alt: material.item })}
+                        className="block rounded-md overflow-hidden border border-gray-200 hover:ring-2 hover:ring-blue-400 focus:ring-2 focus:ring-blue-500 transition-shadow"
+                        title="Click to preview"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={src}
+                          alt={material.item}
+                          className="w-[56px] h-[56px] object-cover"
+                        />
+                      </button>
                     ) : (
-                      <span className="text-xs text-gray-400 italic">
-                        Read-only
-                      </span>
+                      <div className="w-[56px] h-[56px] rounded-md border border-dashed border-gray-300 grid place-content-center text-[10px] text-gray-400">
+                        No image
+                      </div>
                     )}
-                  </div>
-                </td>
-              </tr>
-            ))
+                  </td>
+
+                  <td className="px-4 py-4 font-medium text-gray-900">
+                    {material.item}
+                  </td>
+                  <td className="px-4 py-4">{material.category}</td>
+                  <td className="px-4 py-4 text-center">
+                    {material.qty} {material.unit}
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    ₱{material.unitCost.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    ₱{material.totalCost.toLocaleString()}
+                  </td>
+                  <td className="px-4 py-4">{material.supplier}</td>
+                  <td className="px-4 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      {role === 'admin' ? (
+                        <>
+                          <button
+                            onClick={() => handleEdit(material)}
+                            disabled={isLoading}
+                            className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50"
+                          >
+                            <PencilIcon />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(material.id)}
+                            disabled={isLoading}
+                            className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-50"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">
+                          Read-only
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
           ) : (
             <tr>
               <td colSpan={8} className="text-center py-10 text-gray-500">
@@ -1328,8 +1399,18 @@ const VincenteHouseModule: React.FC<{
           onSave={handleSave}
         />
       )}
+
+      {/* Image Preview */}
+      {imagePreview && (
+        <ImagePreviewModal
+          src={imagePreview.src}
+          alt={imagePreview.alt}
+          onClose={() => setImagePreview(null)}
+        />
+      )}
     </div>
   );
 };
 
 export default VincenteHouseModule;
+
