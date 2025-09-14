@@ -1,5 +1,6 @@
+
 import React from 'react';
-import SocialLinks from './SocialLinksBar';
+import SocialLinks from '../../components/SocialLinksBar.tsx';
 
 // Internal Icon components to keep file changes minimal
 const FooterShieldIcon: React.FC = () => (
@@ -20,7 +21,7 @@ const FooterPassportIcon: React.FC = () => (
 
 const Footer: React.FC = () => {
     return (
-        <footer className="bg-white border-t border-gray-200">
+        <footer className="bg-[var(--bg-primary)] border-t border-[var(--border-primary)]">
             {/* Top strip: trust badges */}
             <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-4">
                 <div className="flex flex-wrap items-center justify-center gap-3 md:justify-between">
@@ -58,9 +59,9 @@ const Footer: React.FC = () => {
                     {/* Brand & blurb */}
                     <div className="lg:col-span-2">
                         <div className="flex items-center gap-2">
-                            <span className="text-gray-900 font-semibold text-lg">Cleopatra SIRV × Binga Beach Brothers</span>
+                            <span className="text-[var(--text-primary)] font-semibold text-lg">Cleopatra SIRV × Binga Beach Brothers</span>
                         </div>
-                        <p className="mt-3 text-sm text-gray-600 leading-relaxed">
+                        <p className="mt-3 text-sm text-[var(--text-secondary)] leading-relaxed">
                             A balanced alliance delivering real-world assets in Palawan: eco-villas & resort ops, farm-to-table agriculture,
                             hardware & construction supply, and compliant structures with transparent reporting.
                         </p>
@@ -68,8 +69,8 @@ const Footer: React.FC = () => {
                         {/* Newsletter */}
                         <form className="mt-4 flex flex-col sm:flex-row gap-2" onSubmit={(e) => e.preventDefault()}>
                             <input type="email" required placeholder="Enter your email"
-                                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                            <button type="submit" className="w-full sm:w-auto whitespace-nowrap rounded-xl bg-white px-4 py-2 text-base font-medium text-gray-700 border border-gray-300 hover:bg-gray-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Join our quarterly update</button>
+                                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-base focus:outline-none" />
+                            <button type="submit" className="w-full sm:w-auto whitespace-nowrap rounded-xl bg-[var(--bg-primary)] px-4 py-2 text-base font-medium text-gray-700 border border-gray-300 hover:bg-gray-100 transition-colors duration-300 focus:outline-none">Join our quarterly update</button>
                         </form>
 
                         {/* Social */}
@@ -80,20 +81,20 @@ const Footer: React.FC = () => {
 
                     {/* Quick Nav */}
                     <nav className="text-sm">
-                        <h4 className="font-semibold text-gray-900">Navigate</h4>
-                        <ul className="mt-3 space-y-2 text-gray-600">
-                            <li><a className="hover:text-gray-900" href="#summary">Executive Summary</a></li>
-                            <li><a className="hover:text-gray-900" href="#market">Market</a></li>
-                            <li><a className="hover:text-gray-900" href="#financials">Financials</a></li>
-                            <li><a className="hover:text-gray-900" href="#risks">Risks</a></li>
-                            <li><a className="hover:text-gray-900" href="#action-plan">Timeline</a></li>
+                        <h4 className="font-semibold text-[var(--text-primary)]">Navigate</h4>
+                        <ul className="mt-3 space-y-2 text-[var(--text-secondary)]">
+                            <li><a className="hover:text-[var(--text-primary)]" href="#summary">Executive Summary</a></li>
+                            <li><a className="hover:text-[var(--text-primary)]" href="#market">Market</a></li>
+                            <li><a className="hover:text-[var(--text-primary)]" href="#financials">Financials</a></li>
+                            <li><a className="hover:text-[var(--text-primary)]" href="#risks">Risks</a></li>
+                            <li><a className="hover:text-[var(--text-primary)]" href="#action-plan">Timeline</a></li>
                         </ul>
                     </nav>
 
                     {/* Verticals */}
                     <nav className="text-sm">
-                        <h4 className="font-semibold text-gray-900">Verticals</h4>
-                        <ul className="mt-3 space-y-2 text-gray-600">
+                        <h4 className="font-semibold text-[var(--text-primary)]">Verticals</h4>
+                        <ul className="mt-3 space-y-2 text-[var(--text-secondary)]">
                             <li>Resort & Eco-Villas</li>
                             <li>Farming & Agri-Tourism</li>
                             <li>Hardware & Construction Supply</li>
@@ -103,32 +104,32 @@ const Footer: React.FC = () => {
 
                     {/* Resources */}
                     <nav className="text-sm">
-                        <h4 className="font-semibold text-gray-900">Resources</h4>
-                        <ul className="mt-3 space-y-2 text-gray-600">
-                            <li><a className="hover:text-gray-900" href="#">Download Deck (PDF)</a></li>
-                            <li><a className="hover:text-gray-900" href="#contact">Schedule Briefing</a></li>
-                            <li><a className="hover:text-gray-900" href="#">FAQ</a></li>
-                            <li><a className="hover:text-gray-900" href="#contact">Contact</a></li>
+                        <h4 className="font-semibold text-[var(--text-primary)]">Resources</h4>
+                        <ul className="mt-3 space-y-2 text-[var(--text-secondary)]">
+                            <li><a className="hover:text-[var(--text-primary)]" href="#">Download Deck (PDF)</a></li>
+                            <li><a className="hover:text-[var(--text-primary)]" href="#contact">Schedule Briefing</a></li>
+                            <li><a className="hover:text-[var(--text-primary)]" href="#">FAQ</a></li>
+                            <li><a className="hover:text-[var(--text-primary)]" href="#contact">Contact</a></li>
                         </ul>
                     </nav>
 
                     {/* Contact */}
                     <div className="text-sm">
-                        <h4 className="font-semibold text-gray-900">Contact</h4>
-                        <ul className="mt-3 space-y-2 text-gray-600">
+                        <h4 className="font-semibold text-[var(--text-primary)]">Contact</h4>
+                        <ul className="mt-3 space-y-2 text-[var(--text-secondary)]">
                             <li>Lumambong Beach, Palawan Island 5309</li>
-                            <li><a className="hover:text-gray-900" href="mailto:david@bingabeach.com">david@bingabeach.com</a></li>
-                            <li><a className="hover:text-gray-900" href="tel:+639474443597">+63 947 444 3597</a></li>
+                            <li><a className="hover:text-[var(--text-primary)]" href="mailto:david@bingabeach.com">david@bingabeach.com</a></li>
+                            <li><a className="hover:text-[var(--text-primary)]" href="tel:+639474443597">+63 947 444 3597</a></li>
                         </ul>
 
                         {/* Locale toggles */}
                         <div className="mt-4 flex flex-wrap gap-2">
-                            <select aria-label="Language" className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+                            <select aria-label="Language" className="rounded-xl border border-gray-300 bg-[var(--bg-primary)] px-3 py-2 text-sm">
                                 <option>English</option>
                                 <option>한국어 (KR)</option>
                                 <option>中文 (CN)</option>
                             </select>
-                            <select aria-label="Currency" className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+                            <select aria-label="Currency" className="rounded-xl border border-gray-300 bg-[var(--bg-primary)] px-3 py-2 text-sm">
                                 <option>PHP ₱</option>
                                 <option>USD $</option>
                                 <option>EUR €</option>
@@ -139,8 +140,8 @@ const Footer: React.FC = () => {
             </div>
 
             {/* Compliance & legal */}
-            <div className="border-t border-gray-200">
-                <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 text-xs text-gray-600">
+            <div className="border-t border-[var(--border-primary)]">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 text-xs text-[var(--text-secondary)]">
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">SEC</span>
                         <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-green-700">ECC</span>
@@ -160,10 +161,10 @@ const Footer: React.FC = () => {
                     <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
                         <div className="text-gray-500">© {new Date().getFullYear()} Cleopatra SIRV Holdings Inc. & Binga Beach Brothers Inc. All rights reserved.</div>
                         <div className="flex flex-wrap gap-4">
-                            <a className="hover:text-gray-900" href="#">Privacy</a>
-                            <a className="hover:text-gray-900" href="#">Terms</a>
-                            <a className="hover:text-gray-900" href="#">Disclosures</a>
-                            <a className="hover:text-gray-900" href="#">Cookies</a>
+                            <a className="hover:text-[var(--text-primary)]" href="#">Privacy</a>
+                            <a className="hover:text-[var(--text-primary)]" href="#">Terms</a>
+                            <a className="hover:text-[var(--text-primary)]" href="#">Disclosures</a>
+                            <a className="hover:text-[var(--text-primary)]" href="#">Cookies</a>
                         </div>
                     </div>
                 </div>

@@ -2,19 +2,18 @@ import React from 'react';
 import { OfficeBuildingIcon } from './icons/OfficeBuildingIcon';
 import { TrendingUpIcon } from './icons/TrendingUpIcon';
 import { HomeIcon } from './icons/HomeIcon';
-import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
-import type { Currency } from '../App';
+import type { Currency } from '../src/types/index.ts';
 
 const PillarCard = ({ icon, title, points, highlight = false }: { icon: React.ReactNode, title: string, points: string[], highlight?: boolean }) => (
-    <div className={`flex-1 ${highlight ? 'bg-blue-50/60' : 'bg-white'} p-8 rounded-xl shadow-md hover:shadow-lg border border-gray-200/50 transition-all duration-300 flex flex-col h-full`}>
+    <div className={`flex-1 ${highlight ? 'bg-blue-50/60' : 'bg-[var(--bg-primary)]'} p-8 rounded-xl shadow-md hover:shadow-lg border border-gray-200/50 transition-all duration-300 flex flex-col h-full`}>
         <div className="flex items-center mb-5">
-            <span className="text-[#0A84FF] mr-4">{icon}</span>
-            <h3 className="font-serif text-lg sm:text-xl font-normal text-[#121212]">{title}</h3>
+            <span className="text-[var(--accent-primary)] mr-4">{icon}</span>
+            <h3 className="font-sans text-lg sm:text-xl font-semibold text-[var(--text-primary)] tracking-tight leading-tight">{title}</h3>
         </div>
-        <ul className="space-y-4 text-gray-700 leading-relaxed">
+        <ul className="space-y-4 text-[var(--text-secondary)] leading-relaxed">
             {points.map((point, i) => (
                 <li key={i} className="flex items-start">
-                    <span className="text-[#0A84FF] mr-3 mt-1 flex-shrink-0">
+                    <span className="text-[var(--accent-primary)] mr-3 mt-1 flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
@@ -33,11 +32,11 @@ interface BusinessModelProps {
 
 const BusinessModel: React.FC<BusinessModelProps> = ({ weeklyTotals, currency }) => {
     return (
-        <section id="model" className="bg-white py-20 sm:py-24">
+        <section id="model" className="bg-[var(--bg-primary)] py-20 sm:py-24">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-16">
-                    <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Business Model & Revenue Streams</h2>
-                    <p className="text-lg text-gray-600 mt-2 max-w-4xl mx-auto">A balanced alliance combining proven land authority, operational excellence, and vertical expansion.</p>
+                    <h2 className="font-sans text-3xl sm:text-4xl font-semibold text-[var(--text-primary)] tracking-tight leading-tight">Business Model & Revenue Streams</h2>
+                    <p className="text-lg text-[var(--text-secondary)] mt-2 max-w-4xl mx-auto leading-relaxed">A balanced alliance combining proven land authority, operational excellence, and vertical expansion.</p>
                 </div>
                 
                 <div className="max-w-7xl mx-auto">

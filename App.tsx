@@ -1,35 +1,13 @@
-import React, { useState, useRef, useEffect, ReactNode, useMemo } from 'react';
-import Header from './components/Header';
-import HeroSection from './components/HeroSection';
-import ExecutiveSummary from './components/ExecutiveSummary';
-import MarketAnalysis from './components/MarketAnalysis';
-import BusinessModel from './components/BusinessModel';
-import FinancialProjections from './components/FinancialProjections';
-import RiskAssessment from './components/RiskAssessment';
-import ActionPlan from './components/ActionPlan';
-import FundingInvestment from './components/FundingInvestment';
-import ESG from './components/ESG';
-import Contact from './components/Contact';
-import Footer from './components/Footer';
-import Portal from './components/Portal';
-import AccreditationBanner from './components/AccreditationBanner';
-import BlogSection from './components/BlogSection';
-import { INITIAL_PROJECTS, getProjectData, calculateAllProjectsWeeklyTotals } from './data/mockData';
-import type { ProjectData } from './types/portal';
-import "./hotfix.css";
-import "./ui-tokens.css";
 
-export interface BlogPost {
-  id: string;
-  title: string;
-  author: string;
-  publishDate: string; // "YYYY-MM-DD"
-  status: 'Published' | 'Draft';
-  excerpt: string;
-  content: string; // Can be markdown or simple text
-  imageUrl: string;
-  tags: string[];
-}
+import React, { useState, useEffect, useMemo } from 'react';
+import MainLayout from './src/layouts/MainLayout.tsx';
+import HomePage from './src/pages/HomePage.tsx';
+import BlogPage from './src/pages/BlogPage.tsx';
+import Portal from './components/Portal.tsx';
+import { getProjectData, calculateAllProjectsWeeklyTotals } from './src/lib/data.ts';
+import type { ProjectData } from './src/types/portal.ts';
+import type { Currency, BlogPost } from './src/types/index.ts';
+import { INITIAL_PROJECTS } from './src/lib/data.ts';
 
 const initialBlogPosts: BlogPost[] = [
   {
@@ -51,57 +29,16 @@ My "operating system" for daily life became a series of inputs and conditional o
 This mindset shift was profound. It's the same logic that powers generative AI. You provide a clear context, define your constraints, and ask a precise question to get a useful output. On the island, the "AI" was my own planning and the island's resources. The output was a sustainable, comfortable day.
 
 This experience taught me that prompt engineering isn't just a technical skill; it's a life skill. It’s about understanding a system, defining your needs, and communicating them effectively to get the desired result, whether you're talking to a large language model or deciding when to do your laundry with solar power.`,
-    imageUrl: 'https://firebasestorage.googleapis.com/v0/b/haloblocsept2025.firebasestorage.app/o/25.png?alt=media&token=4d8237a0-77e5-43b5-92bb-497dcbdfd6c7',
+    imageUrl: '/images/blog/learning-to-think-in-prompts.png',
     tags: ['Off-Grid', 'Prompt Engineering', 'Palawan', 'Sustainability'],
   }
 ];
 
-
-const AnimatedSection: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const sectionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.unobserve(entry.target);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentRef = sectionRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, []);
-
-  return (
-    <div
-      ref={sectionRef}
-      className={`transition-all duration-1000 ease-out ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-      }`}
-    >
-      {children}
-    </div>
-  );
-};
-
-export type Currency = 'PHP' | 'USD' | 'EUR';
-
 function App() {
   const [currency, setCurrency] = useState<Currency>('PHP');
   const [isPortalOpen, setIsPortalOpen] = useState(false);
-  const [view, setView] = useState<'main' | 'blog'>('main');
+  const [view, setView] = useState<'home' | 'blog'>('home');
+  
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => {
     try {
       const savedPosts = localStorage.getItem('blogPosts');
@@ -155,67 +92,26 @@ function App() {
   }, [projectsData]);
 
   useEffect(() => {
-    if (isPortalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = isPortalOpen ? 'hidden' : '';
   }, [isPortalOpen]);
   
-  const MainContent = () => (
-    <>
-      <main>
-        <HeroSection />
-        <AnimatedSection>
-          <AccreditationBanner />
-        </AnimatedSection>
-        <AnimatedSection>
-          <ExecutiveSummary currency={currency} weeklyTotals={allProjectsWeeklyTotals} />
-        </AnimatedSection>
-        <AnimatedSection>
-          <MarketAnalysis weeklyTotals={allProjectsWeeklyTotals} currency={currency} />
-        </AnimatedSection>
-        <AnimatedSection>
-          <BusinessModel weeklyTotals={allProjectsWeeklyTotals} currency={currency} />
-        </AnimatedSection>
-        <AnimatedSection>
-          <FinancialProjections currency={currency} weeklyTotals={allProjectsWeeklyTotals} />
-        </AnimatedSection>
-        <AnimatedSection>
-          <RiskAssessment weeklyTotals={allProjectsWeeklyTotals} currency={currency} />
-        </AnimatedSection>
-        <AnimatedSection>
-          <ActionPlan currency={currency} weeklyTotals={allProjectsWeeklyTotals} />
-        </AnimatedSection>
-        <AnimatedSection>
-          <FundingInvestment currency={currency} weeklyTotals={allProjectsWeeklyTotals} />
-        </AnimatedSection>
-        <AnimatedSection>
-          <ESG weeklyTotals={allProjectsWeeklyTotals} currency={currency} />
-        </AnimatedSection>
-        <AnimatedSection>
-         <Contact />
-        </AnimatedSection>
-      </main>
-      <Footer />
-    </>
-  );
-
   return (
-    <div className="bg-white">
-      <Header 
-        selectedCurrency={currency} 
+    <div className="bg-[var(--bg-primary)]">
+      <MainLayout
+        selectedCurrency={currency}
         setSelectedCurrency={setCurrency}
         onPortalButtonClick={() => setIsPortalOpen(true)}
         onBlogButtonClick={() => setView('blog')}
-       />
-       {view === 'main' ? (
-         <MainContent />
-       ) : (
-         <BlogSection posts={blogPosts} onBack={() => setView('main')} />
-       )}
-      <Portal 
-        isOpen={isPortalOpen} 
+        onHomeButtonClick={() => setView('home')}
+      >
+        {view === 'home' ? (
+          <HomePage currency={currency} weeklyTotals={allProjectsWeeklyTotals} />
+        ) : (
+          <BlogPage posts={blogPosts} />
+        )}
+      </MainLayout>
+      <Portal
+        isOpen={isPortalOpen}
         onClose={() => setIsPortalOpen(false)}
         posts={blogPosts}
         setPosts={setBlogPosts}
@@ -227,4 +123,3 @@ function App() {
 }
 
 export default App;
-

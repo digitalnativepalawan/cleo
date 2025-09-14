@@ -1,20 +1,35 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Palawan Integrated Tourism Ecosystem
 
-# Run and deploy your AI Studio app
+This project is a comprehensive business plan and investor portal for the Palawan Integrated Tourism, Investment & Infrastructure Ecosystem.
 
-This contains everything you need to run your app locally.
+## Project Structure
 
-View your app in AI Studio: https://ai.studio/apps/drive/1kAoOvX3-UlV2fd35P6q7A-qjeXkSFi6o
+This project follows a standard front-end application structure to ensure maintainability and scalability.
 
-## Run Locally
+-   `/public`: Contains static assets like logos, images, `robots.txt`, and `manifest.json`. These files are served directly by the web server.
+-   `/src`: Contains all application source code.
+    -   `/assets`: Optimized images, SVGs, fonts, and other static assets that are part of the source.
+    -   `/components`: Reusable, "pure" UI components that are used across the application.
+    -   `/layouts`: Components responsible for the overall page structure, such as headers, footers, and sidebars.
+    -   `/lib`: Helper functions, utilities, and data-fetching logic.
+    -   `/pages`: Top-level components that represent a page or a major view in the application.
+    -   `/styles`: Global stylesheets, CSS variables, or design tokens.
+    -   `/types`: Global TypeScript type definitions.
+-   `index.html`: The main HTML entry point for the application.
+-   `package.json`: Defines project metadata, dependencies, and scripts.
+-   `tsconfig.json`: TypeScript compiler configuration.
 
-**Prerequisites:**  Node.js
+## Running the Application
 
+This is a static front-end application designed to run without a complex build step. To run it, serve the root directory using a simple local web server.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+# Using Python's built-in server
+python3 -m http.server
+
+# Or using Node.js with the 'serve' package
+npm install -g serve
+serve .
+```
+
+Navigate to the provided local URL (e.g., `http://localhost:8000`) in your browser.

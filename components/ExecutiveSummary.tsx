@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Currency } from '../App';
+import type { Currency } from '../src/types/index.ts';
 import { LandDeedIcon } from './icons/LandDeedIcon';
 import { ComplianceStampIcon } from './icons/ComplianceStampIcon';
 import { OfficeBuildingIcon } from './icons/OfficeBuildingIcon';
@@ -8,7 +8,6 @@ import { IntegratedVerticalsIcon } from './icons/IntegratedVerticalsIcon';
 import { DocumentIcon } from './icons/DocumentIcon';
 import { HomeIcon } from './icons/HomeIcon';
 import { LeafIcon } from './icons/LeafIcon';
-import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
 
 
 const EXCHANGE_RATES: Record<Currency, number> = { PHP: 1, USD: 1 / 58, EUR: 1 / 63 };
@@ -92,29 +91,29 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ currency, weeklyTot
     ];
 
     return (
-        <section id="summary" className="bg-gray-50/50 py-20 sm:py-24">
+        <section id="summary" className="bg-[var(--bg-secondary)]/50 py-20 sm:py-24">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-16">
-                    <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Executive Summary</h2>
-                    <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">A high-level overview of our strategic direction and foundational strengths.</p>
+                    <h2 className="font-sans text-3xl sm:text-4xl font-semibold text-[var(--text-primary)] tracking-tight leading-tight">Executive Summary</h2>
+                    <p className="text-lg text-[var(--text-secondary)] mt-2 max-w-2xl mx-auto leading-relaxed">A high-level overview of our strategic direction and foundational strengths.</p>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto">
                     {/* Left Column: Mission & Vision */}
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-100 flex flex-col">
+                    <div className="bg-[var(--bg-primary)] rounded-lg shadow-lg border border-gray-100 flex flex-col">
                         <div className="bg-blue-50 border-b border-blue-200 p-4 rounded-t-lg">
-                            <h3 className="font-serif text-lg sm:text-xl font-normal text-blue-800 text-center">Mission & Vision</h3>
+                            <h3 className="font-sans text-lg sm:text-xl font-semibold text-blue-800 text-center tracking-tight leading-tight">Mission & Vision</h3>
                         </div>
                         <ul className="p-8 space-y-5">
                             {missionVisionPoints.map((point, index) => (
                                 <li key={index} className="flex items-start">
-                                    <span className="text-[#0A84FF] mr-4 mt-1 flex-shrink-0">
+                                    <span className="text-[var(--accent-primary)] mr-4 mt-1 flex-shrink-0">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                         </svg>
                                     </span>
                                     <div>
                                         <h4 className="font-semibold text-gray-800">{point.title}</h4>
-                                        <p className="text-gray-600 text-sm">{point.description}</p>
+                                        <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{point.description}</p>
                                     </div>
                                 </li>
                             ))}
@@ -122,23 +121,23 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ currency, weeklyTot
                     </div>
 
                     {/* Right Column: Proof Points */}
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-100 flex flex-col">
+                    <div className="bg-[var(--bg-primary)] rounded-lg shadow-lg border border-gray-100 flex flex-col">
                         <div className="bg-green-50 border-b border-green-200 p-4 rounded-t-lg">
-                            <h3 className="font-serif text-lg sm:text-xl font-normal text-green-800 text-center">Core Proof Points</h3>
+                            <h3 className="font-sans text-lg sm:text-xl font-semibold text-green-800 text-center tracking-tight leading-tight">Core Proof Points</h3>
                         </div>
                         <ul className="p-8 space-y-6">
                             {proofPoints.map((point, index) => (
                                 <li key={index} className="flex items-start">
-                                    <div className="relative group text-[#0A84FF] mr-4 mt-1 flex-shrink-0">
+                                    <div className="relative group text-[var(--accent-primary)] mr-4 mt-1 flex-shrink-0">
                                         {point.icon}
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs px-3 py-1.5 bg-gray-800 text-white text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs px-3 py-1.5 bg-gray-800 text-white text-xs font-medium rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
                                             {point.details}
                                             <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
                                         </div>
                                     </div>
                                     <div className="flex-grow">
-                                        <h4 className="font-semibold text-gray-800">{point.title}</h4>
-                                        <p className="text-gray-600 text-sm">{point.description}</p>
+                                        <h4 className="font-semibold text-gray-800 tabular-nums">{point.title}</h4>
+                                        <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{point.description}</p>
                                     </div>
                                     {point.visual}
                                 </li>

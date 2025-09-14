@@ -1,1330 +1,702 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import type { UserRole } from '../../Portal';
-import type { Task, Labor, Material, ProjectData, TaskStatus, TaskType, LaborRateType, MaterialCategory, MaterialUnit, Attachment } from '../../../types/portal';
-import {
-  PlusIcon, PencilIcon, TrashIcon, SearchIcon, FilterIcon, CalendarIcon,
-  DotsVerticalIcon, ChevronDownIcon, XIcon, UploadIcon, ImageIcon, DriveIcon
-} from '../PortalIcons';
-import {
-  taskOperations,
-  laborOperations,
-  materialOperations,
-  uploadFile
-} from '../../../src/lib/supabase-helpers';
+import React, { useState, useMemo, useEffect } from 'react';
+import { GoogleGenAI, Type } from "@google/genai";
+import type { UserRole } from '../../Portal.tsx';
+import type { ProjectData, Task, Labor, Material, ProjectItem, TaskStatus, TaskType, LaborRateType, MaterialCategory, MaterialUnit, Attachment } from '../../../src/types/portal.ts';
+import { PlusIcon, SearchIcon, FilterIcon, XIcon } from '../PortalIcons.tsx';
+import { TasksView, LaborView, MaterialsView } from '../../../src/components/portal/views/ProjectItemViews.tsx';
+import { saveAttachment, deleteAttachment } from '../../../src/lib/indexedDB.ts';
+
+
+type ActiveTab = 'tasks' | 'labor' | 'materials';
 
 const simpleId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center p-8">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-  </div>
-);
 
-const ErrorMessage = ({ message, onRetry }: { message: string; onRetry?: () => void }) => (
-  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-    <p className="text-red-600 mb-2">{message}</p>
-    {onRetry && (
-      <button 
-        onClick={onRetry}
-        className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-      >
-        Retry
-      </button>
-    )}
-  </div>
-);
+// --- FORM MODAL ---
 
-// Status Pills
-const StatusPill = ({ status }: { status: string }) => {
-  const colorMap: Record<string, string> = {
-    'Pending': 'bg-gray-100 text-gray-800',
-    'Backlog': 'bg-yellow-100 text-yellow-800',
-    'In Progress': 'bg-blue-100 text-blue-800',
-    'Blocked': 'bg-red-100 text-red-800',
-    'Review': 'bg-purple-100 text-purple-800',
-    'Done': 'bg-green-100 text-green-800',
-  };
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorMap[status] || 'bg-gray-100 text-gray-800'}`}>
-      {status}
-    </span>
-  );
-};
+type ModalView = 'manual' | 'loading' | 'review';
+type ExtractedMaterial = Partial<Material> & { selected: boolean; };
 
-// Task Modal Component
-const TaskModal = ({ 
-  task, 
-  onClose, 
-  onSave, 
-  isLoading 
-}: { 
-  task: Partial<Task>; 
-  onClose: () => void; 
-  onSave: (task: Partial<Task>) => Promise<void>;
-  isLoading: boolean;
-}) => {
-  const [formData, setFormData] = useState(task);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSave(formData);
-  };
-
-  const inputClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">{task.id ? 'Edit' : 'Create'} Task</h3>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100" disabled={isLoading}>
-            <XIcon />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Task Name</label>
-            <input 
-              type="text" 
-              name="name" 
-              id="name" 
-              value={formData.name || ''} 
-              onChange={handleChange} 
-              className={inputClass} 
-              required 
-              disabled={isLoading}
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <select name="type" id="type" value={formData.type || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
-                <option value="">Select type</option>
-                <option value="Design">Design</option>
-                <option value="Site Prep">Site Prep</option>
-                <option value="Foundation">Foundation</option>
-                <option value="Structure">Structure</option>
-                <option value="MEP">MEP</option>
-                <option value="Finish">Finish</option>
-                <option value="Inspection">Inspection</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select name="status" id="status" value={formData.status || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
-                <option value="Pending">Pending</option>
-                <option value="Backlog">Backlog</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Blocked">Blocked</option>
-                <option value="Review">Review</option>
-                <option value="Done">Done</option>
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="owner" className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
-              <input 
-                type="text" 
-                name="owner" 
-                id="owner" 
-                value={formData.owner || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-              <input 
-                type="date" 
-                name="dueDate" 
-                id="dueDate" 
-                value={formData.dueDate || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="estHours" className="block text-sm font-medium text-gray-700 mb-1">Estimated Hours</label>
-              <input 
-                type="number" 
-                name="estHours" 
-                id="estHours" 
-                value={formData.estHours || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                min="0" 
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="cost" className="block text-sm font-medium text-gray-700 mb-1">Cost (₱)</label>
-              <input 
-                type="number" 
-                name="cost" 
-                id="cost" 
-                value={formData.cost || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                min="0" 
-                step="0.01" 
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea 
-              name="notes" 
-              id="notes" 
-              rows={3} 
-              value={formData.notes || ''} 
-              onChange={handleChange} 
-              className={inputClass} 
-              disabled={isLoading}
-            />
-          </div>
-          <div className="flex items-center">
-            <input 
-              type="checkbox" 
-              name="paid" 
-              id="paid" 
-              checked={formData.paid || false} 
-              onChange={handleChange} 
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
-              disabled={isLoading}
-            />
-            <label htmlFor="paid" className="ml-2 block text-sm text-gray-900">Paid</label>
-          </div>
-        </form>
-        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
-          <button 
-            type="button" 
-            onClick={onClose} 
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors" 
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            onClick={handleSubmit} 
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50" 
-            disabled={isLoading}
-          >
-            {isLoading ? 'Saving...' : 'Save Task'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Labor Modal Component
-const LaborModal = ({ 
-  labor, 
-  onClose, 
-  onSave, 
-  isLoading 
-}: { 
-  labor: Partial<Labor>; 
-  onClose: () => void; 
-  onSave: (labor: Partial<Labor>) => Promise<void>;
-  isLoading: boolean;
-}) => {
-  const [formData, setFormData] = useState(labor);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+const ItemFormModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (item: Partial<ProjectItem>) => void;
+    onSaveMultiple: (items: Partial<ProjectItem>[]) => Promise<void>;
+    item: Partial<ProjectItem> | null;
+    itemType: ActiveTab;
+}> = ({ isOpen, onClose, onSave, onSaveMultiple, item, itemType }) => {
+    const [formData, setFormData] = useState<Partial<ProjectItem> | null>(item);
     
-    setFormData(prev => {
-      const updated = { ...prev, [name]: newValue };
-      
-      // Auto-calculate cost when rate or qty changes
-      if (name === 'rate' || name === 'qty') {
-        const rate = name === 'rate' ? parseFloat(value) || 0 : prev.rate || 0;
-        const qty = name === 'qty' ? parseFloat(value) || 0 : prev.qty || 0;
-        updated.cost = rate * qty;
-      }
-      
-      return updated;
-    });
-  };
+    // AI Feature State
+    const [view, setView] = useState<ModalView>('manual');
+    const [extractedItems, setExtractedItems] = useState<ExtractedMaterial[]>([]);
+    const [scanError, setScanError] = useState<string | null>(null);
+    const [receiptImage, setReceiptImage] = useState<{b64: string, name: string} | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSave(formData);
-  };
+    useEffect(() => {
+        setFormData(item);
+        if (!isOpen) {
+            // Reset AI state on close
+            setTimeout(() => {
+                setView('manual');
+                setExtractedItems([]);
+                setScanError(null);
+                setReceiptImage(null);
+            }, 300);
+        }
+    }, [item, isOpen]);
 
-  const inputClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+    useEffect(() => {
+        if (!formData) return;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">{labor.id ? 'Edit' : 'Create'} Labor Entry</h3>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100" disabled={isLoading}>
-            <XIcon />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="crewRole" className="block text-sm font-medium text-gray-700 mb-1">Crew Role</label>
-              <input 
-                type="text" 
-                name="crewRole" 
-                id="crewRole" 
-                value={formData.crewRole || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                required 
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="workers" className="block text-sm font-medium text-gray-700 mb-1">Workers</label>
-              <input 
-                type="text" 
-                name="workers" 
-                id="workers" 
-                value={formData.workers || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                required 
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="rateType" className="block text-sm font-medium text-gray-700 mb-1">Rate Type</label>
-              <select name="rateType" id="rateType" value={formData.rateType || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
-                <option value="Daily">Daily</option>
-                <option value="Hourly">Hourly</option>
-                <option value="Contract">Contract</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="rate" className="block text-sm font-medium text-gray-700 mb-1">Rate (₱)</label>
-              <input 
-                type="number" 
-                name="rate" 
-                id="rate" 
-                value={formData.rate || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                min="0" 
-                step="0.01" 
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="qty" className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-              <input 
-                type="number" 
-                name="qty" 
-                id="qty" 
-                value={formData.qty || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                min="0" 
-                step="0.01" 
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input 
-                type="date" 
-                name="startDate" 
-                id="startDate" 
-                value={formData.startDate || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-              <input 
-                type="date" 
-                name="endDate" 
-                id="endDate" 
-                value={formData.endDate || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="supplier" className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
-            <input 
-              type="text" 
-              name="supplier" 
-              id="supplier" 
-              value={formData.supplier || ''} 
-              onChange={handleChange} 
-              className={inputClass} 
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Total Cost: ₱{(formData.cost || 0).toLocaleString()}</label>
-          </div>
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea 
-              name="notes" 
-              id="notes" 
-              rows={3} 
-              value={formData.notes || ''} 
-              onChange={handleChange} 
-              className={inputClass} 
-              disabled={isLoading}
-            />
-          </div>
-          <div className="flex items-center">
-            <input 
-              type="checkbox" 
-              name="paid" 
-              id="paid" 
-              checked={formData.paid || false} 
-              onChange={handleChange} 
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
-              disabled={isLoading}
-            />
-            <label htmlFor="paid" className="ml-2 block text-sm text-gray-900">Paid</label>
-          </div>
-        </form>
-        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
-          <button 
-            type="button" 
-            onClick={onClose} 
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors" 
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            onClick={handleSubmit} 
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50" 
-            disabled={isLoading}
-          >
-            {isLoading ? 'Saving...' : 'Save Labor'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+        if (itemType === 'labor') {
+            const laborData = formData as Partial<Labor>;
+            const newCost = (laborData.qty || 0) * (laborData.rate || 0);
+            if (laborData.cost !== newCost) {
+                setFormData(prev => ({ ...prev, cost: newCost }));
+            }
+        } else if (itemType === 'materials') {
+            const materialData = formData as Partial<Material>;
+            const newTotalCost = (materialData.qty || 0) * (materialData.unitCost || 0);
+            if (materialData.totalCost !== newTotalCost) {
+                setFormData(prev => ({ ...prev, totalCost: newTotalCost }));
+            }
+        }
+    }, [formData, itemType]);
 
-// Material Modal Component
-const MaterialModal = ({ 
-  material, 
-  onClose, 
-  onSave, 
-  isLoading 
-}: { 
-  material: Partial<Material>; 
-  onClose: () => void; 
-  onSave: (material: Partial<Material>) => Promise<void>;
-  isLoading: boolean;
-}) => {
-  const [formData, setFormData] = useState(material);
-  const [uploading, setUploading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+        const isCheckbox = type === 'checkbox';
+        const isNumber = type === 'number';
+
+        setFormData(prev => ({ 
+            ...prev, 
+            [name]: isCheckbox ? (e.target as HTMLInputElement).checked : isNumber ? parseFloat(value) || 0 : value 
+        }));
+    };
     
-    setFormData(prev => {
-      const updated = { ...prev, [name]: newValue };
-      
-      // Auto-calculate total cost when qty or unitCost changes
-      if (name === 'qty' || name === 'unitCost') {
-        const qty = name === 'qty' ? parseFloat(value) || 0 : prev.qty || 0;
-        const unitCost = name === 'unitCost' ? parseFloat(value) || 0 : prev.unitCost || 0;
-        updated.totalCost = qty * unitCost;
-      }
-      
-      return updated;
-    });
-  };
+    // --- AI Feature Methods ---
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const scanReceipt = async (base64Image: string, fileName: string) => {
+      setView('loading');
+      setScanError(null);
+      setReceiptImage({b64: base64Image, name: fileName});
 
-    try {
-      setUploading(true);
-      const { url } = await uploadFile(file, 'materials');
-      setFormData(prev => ({ 
-        ...prev, 
-        attachment: { type: 'image', value: url, name: file.name }
-      }));
-    } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSave(formData);
-  };
-
-  const inputClass = "w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">{material.id ? 'Edit' : 'Create'} Material Entry</h3>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100" disabled={isLoading}>
-            <XIcon />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-          <div>
-            <label htmlFor="item" className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-            <input 
-              type="text" 
-              name="item" 
-              id="item" 
-              value={formData.item || ''} 
-              onChange={handleChange} 
-              className={inputClass} 
-              required 
-              disabled={isLoading}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <input 
-                  type="url" 
-                  name="imageUrl" 
-                  placeholder="https://example.com/image.jpg" 
-                  value={(formData as any).imageUrl || ''} 
-                  onChange={handleChange} 
-                  className={inputClass} 
-                  disabled={isLoading}
-                />
-                <p className="text-xs text-gray-500 mt-1">Paste a direct image link, or use file upload on the right.</p>
-              </div>
-              <div className="flex-shrink-0">
-                <label className="flex items-center justify-center w-32 h-10 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 disabled:opacity-50">
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleFileUpload} 
-                    className="hidden" 
-                    disabled={isLoading || uploading}
-                  />
-                  <UploadIcon className="h-4 w-4 mr-2" />
-                  <span className="text-sm">{uploading ? 'Uploading...' : 'Choose File'}</span>
-                </label>
-                <p className="text-xs text-gray-500 mt-1 text-center">
-                  {uploading ? 'Uploading to Supabase...' : 'Upload to Supabase Storage'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select name="category" id="category" value={formData.category || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
-                <option value="">Select category</option>
-                <option value="Aggregates">Aggregates</option>
-                <option value="Timber">Timber</option>
-                <option value="Steel">Steel</option>
-                <option value="Electrical">Electrical</option>
-                <option value="Plumbing">Plumbing</option>
-                <option value="Finishes">Finishes</option>
-                <option value="Fixtures">Fixtures</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="unit" className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-              <select name="unit" id="unit" value={formData.unit || ''} onChange={handleChange} className={inputClass} disabled={isLoading}>
-                <option value="">Select unit</option>
-                <option value="pc">pc</option>
-                <option value="box">box</option>
-                <option value="m">m</option>
-                <option value="sqm">sqm</option>
-                <option value="kg">kg</option>
-                <option value="ton">ton</option>
-                <option value="liter">liter</option>
-                <option value="gallon">gallon</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="qty" className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-              <input 
-                type="number" 
-                name="qty" 
-                id="qty" 
-                value={formData.qty || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                min="0" 
-                step="0.01" 
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="unitCost" className="block text-sm font-medium text-gray-700 mb-1">Unit Cost (₱)</label>
-              <input 
-                type="number" 
-                name="unitCost" 
-                id="unitCost" 
-                value={formData.unitCost || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                min="0" 
-                step="0.01" 
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Total Cost</label>
-              <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-900">
-                ₱{(formData.totalCost || 0).toLocaleString()}
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="supplier" className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
-              <input 
-                type="text" 
-                name="supplier" 
-                id="supplier" 
-                value={formData.supplier || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="deliveryEta" className="block text-sm font-medium text-gray-700 mb-1">Delivery ETA</label>
-              <input 
-                type="date" 
-                name="deliveryEta" 
-                id="deliveryEta" 
-                value={formData.deliveryEta || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-              <select name="location" id="location" value={formData.location || 'Site'} onChange={handleChange} className={inputClass} disabled={isLoading}>
-                <option value="Site">Site</option>
-                <option value="Warehouse">Warehouse</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="leadTimeDays" className="block text-sm font-medium text-gray-700 mb-1">Lead Time (Days)</label>
-              <input 
-                type="number" 
-                name="leadTimeDays" 
-                id="leadTimeDays" 
-                value={formData.leadTimeDays || ''} 
-                onChange={handleChange} 
-                className={inputClass} 
-                min="0" 
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea 
-              name="notes" 
-              id="notes" 
-              rows={3} 
-              value={formData.notes || ''} 
-              onChange={handleChange} 
-              className={inputClass} 
-              disabled={isLoading}
-            />
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <input 
-                type="checkbox" 
-                name="received" 
-                id="received" 
-                checked={formData.received || false} 
-                onChange={handleChange} 
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
-                disabled={isLoading}
-              />
-              <label htmlFor="received" className="ml-2 block text-sm text-gray-900">Received</label>
-            </div>
-            <div className="flex items-center">
-              <input 
-                type="checkbox" 
-                name="paid" 
-                id="paid" 
-                checked={formData.paid || false} 
-                onChange={handleChange} 
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
-                disabled={isLoading}
-              />
-              <label htmlFor="paid" className="ml-2 block text-sm text-gray-900">Paid</label>
-            </div>
-          </div>
-        </form>
-        <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
-          <button 
-            type="button" 
-            onClick={onClose} 
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors" 
-            disabled={isLoading}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            onClick={handleSubmit} 
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50" 
-            disabled={isLoading || uploading}
-          >
-            {isLoading ? 'Saving...' : 'Save Material'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Main Component
-const VincenteHouseModule: React.FC<{
-  project: { id: string; name: string };
-  role: UserRole;
-  showToast: (msg: string) => void;
-  projectData: ProjectData;
-  onUpdateProjectData: (data: ProjectData) => void;
-}> = ({ project, role, showToast, projectData, onUpdateProjectData }) => {
-  const [activeTab, setActiveTab] = useState<'tasks' | 'labor' | 'materials'>('tasks');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  
-  // Modal states
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [isLaborModalOpen, setIsLaborModalOpen] = useState(false);
-  const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  
-  // Loading states
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Refresh data from Supabase
-  const refreshData = async () => {
-    try {
-      setIsRefreshing(true);
-      setError(null);
-      
-      const [tasks, labor, materials] = await Promise.all([
-        taskOperations.getByProject(project.id),
-        laborOperations.getByProject(project.id),
-        materialOperations.getByProject(project.id)
-      ]);
-      
-      onUpdateProjectData({ tasks, labor, materials });
-    } catch (err) {
-      console.error('Error refreshing data:', err);
-      setError('Failed to refresh data from database');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // Load data on component mount
-  useEffect(() => {
-    if (!projectData.tasks.length && !projectData.labor.length && !projectData.materials.length) {
-      refreshData();
-    }
-  }, [project.id]);
-
-  // Task operations
-  const handleSaveTask = async (taskData: Partial<Task>) => {
-    try {
-      setIsLoading(true);
-      
-      const taskToSave = {
-        ...taskData,
-        projectId: project.id,
-        order: taskData.order || projectData.tasks.length
-      };
-
-      let savedTask: Task;
-      if (taskData.id) {
-        savedTask = await taskOperations.update(taskData.id, taskToSave);
-      } else {
-        savedTask = await taskOperations.create(taskToSave);
-      }
-
-      // Update local state
-      const updatedTasks = taskData.id 
-        ? projectData.tasks.map(t => t.id === taskData.id ? savedTask : t)
-        : [...projectData.tasks, savedTask];
-      
-      onUpdateProjectData({
-        ...projectData,
-        tasks: updatedTasks
-      });
-
-      setIsTaskModalOpen(false);
-      setEditingItem(null);
-      showToast(taskData.id ? 'Task updated successfully' : 'Task created successfully');
-    } catch (err) {
-      console.error('Error saving task:', err);
-      showToast('Failed to save task');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
-    
-    try {
-      setIsLoading(true);
-      await taskOperations.delete(taskId);
-      
-      const updatedTasks = projectData.tasks.filter(t => t.id !== taskId);
-      onUpdateProjectData({
-        ...projectData,
-        tasks: updatedTasks
-      });
-      
-      showToast('Task deleted successfully');
-    } catch (err) {
-      console.error('Error deleting task:', err);
-      showToast('Failed to delete task');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Labor operations
-  const handleSaveLabor = async (laborData: Partial<Labor>) => {
-    try {
-      setIsLoading(true);
-      
-      const laborToSave = {
-        ...laborData,
-        projectId: project.id
-      };
-
-      let savedLabor: Labor;
-      if (laborData.id) {
-        savedLabor = await laborOperations.update(laborData.id, laborToSave);
-      } else {
-        savedLabor = await laborOperations.create(laborToSave);
-      }
-
-      // Update local state
-      const updatedLabor = laborData.id 
-        ? projectData.labor.map(l => l.id === laborData.id ? savedLabor : l)
-        : [...projectData.labor, savedLabor];
-      
-      onUpdateProjectData({
-        ...projectData,
-        labor: updatedLabor
-      });
-
-      setIsLaborModalOpen(false);
-      setEditingItem(null);
-      showToast(laborData.id ? 'Labor entry updated successfully' : 'Labor entry created successfully');
-    } catch (err) {
-      console.error('Error saving labor:', err);
-      showToast('Failed to save labor entry');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteLabor = async (laborId: string) => {
-    if (!window.confirm('Are you sure you want to delete this labor entry?')) return;
-    
-    try {
-      setIsLoading(true);
-      await laborOperations.delete(laborId);
-      
-      const updatedLabor = projectData.labor.filter(l => l.id !== laborId);
-      onUpdateProjectData({
-        ...projectData,
-        labor: updatedLabor
-      });
-      
-      showToast('Labor entry deleted successfully');
-    } catch (err) {
-      console.error('Error deleting labor:', err);
-      showToast('Failed to delete labor entry');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Material operations
-  const handleSaveMaterial = async (materialData: Partial<Material>) => {
-    try {
-      setIsLoading(true);
-      
-      const materialToSave = {
-        ...materialData,
-        projectId: project.id
-      };
-
-      let savedMaterial: Material;
-      if (materialData.id) {
-        savedMaterial = await materialOperations.update(materialData.id, materialToSave);
-      } else {
-        savedMaterial = await materialOperations.create(materialToSave);
-      }
-
-      // Update local state
-      const updatedMaterials = materialData.id 
-        ? projectData.materials.map(m => m.id === materialData.id ? savedMaterial : m)
-        : [...projectData.materials, savedMaterial];
-      
-      onUpdateProjectData({
-        ...projectData,
-        materials: updatedMaterials
-      });
-
-      setIsMaterialModalOpen(false);
-      setEditingItem(null);
-      showToast(materialData.id ? 'Material updated successfully' : 'Material created successfully');
-    } catch (err) {
-      console.error('Error saving material:', err);
-      showToast('Failed to save material');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteMaterial = async (materialId: string) => {
-    if (!window.confirm('Are you sure you want to delete this material?')) return;
-    
-    try {
-      setIsLoading(true);
-      await materialOperations.delete(materialId);
-      
-      const updatedMaterials = projectData.materials.filter(m => m.id !== materialId);
-      onUpdateProjectData({
-        ...projectData,
-        materials: updatedMaterials
-      });
-      
-      showToast('Material deleted successfully');
-    } catch (err) {
-      console.error('Error deleting material:', err);
-      showToast('Failed to delete material');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Filter data based on search and status
-  const filteredTasks = useMemo(() => {
-    return projectData.tasks.filter(task => {
-      const matchesSearch = task.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           task.owner.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = !statusFilter || task.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [projectData.tasks, searchTerm, statusFilter]);
-
-  const filteredLabor = useMemo(() => {
-    return projectData.labor.filter(labor => {
-      const matchesSearch = labor.crewRole.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           labor.workers.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch;
-    });
-  }, [projectData.labor, searchTerm]);
-
-  const filteredMaterials = useMemo(() => {
-    return projectData.materials.filter(material => {
-      const matchesSearch = material.item.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           material.supplier.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch;
-    });
-  }, [projectData.materials, searchTerm]);
-
-  if (error) {
-    return <ErrorMessage message={error} onRetry={refreshData} />;
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800">{project.name}</h2>
-          <p className="text-sm text-gray-500 mt-1">Manage tasks, labor, and materials for this project.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={refreshData}
-            disabled={isRefreshing}
-            className="text-sm bg-gray-100 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50"
-          >
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          {[
-            { key: 'tasks', label: 'Tasks', count: projectData.tasks.length },
-            { key: 'labor', label: 'Labor', count: projectData.labor.length },
-            { key: 'materials', label: 'Materials', count: projectData.materials.length }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                activeTab === tab.key
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
+      try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
         
-        {activeTab === 'tasks' && (
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Backlog">Backlog</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Blocked">Blocked</option>
-            <option value="Review">Review</option>
-            <option value="Done">Done</option>
-          </select>
-        )}
+        const imagePart = {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: base64Image.split(',')[1],
+          },
+        };
 
-        {role === 'admin' && (
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              if (activeTab === 'tasks') setIsTaskModalOpen(true);
-              else if (activeTab === 'labor') setIsLaborModalOpen(true);
-              else if (activeTab === 'materials') setIsMaterialModalOpen(true);
-            }}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <PlusIcon />
-            Add {activeTab.slice(0, -1)}
-          </button>
-        )}
-      </div>
+        const textPart = {
+          text: `You are an expert receipt processing AI. Extract all line items from this invoice. Return a valid JSON object that adheres to the provided schema. The JSON object should contain a single key 'items' which is an array of objects. Each object in the array should have keys: 'item' (string), 'qty' (number), 'unitCost' (number), 'totalCost' (number). Do not include taxes, discounts, or totals as line items. If a value is not found, use a reasonable default like 1 for quantity or 0 for prices.`
+        };
 
-      {/* Content */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-        {isRefreshing && <LoadingSpinner />}
+        const responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+                items: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            item: { type: Type.STRING },
+                            qty: { type: Type.NUMBER },
+                            unitCost: { type: Type.NUMBER },
+                            totalCost: { type: Type.NUMBER },
+                        },
+                    },
+                },
+            },
+        };
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: { parts: [imagePart, textPart] },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema,
+            },
+        });
         
-        {!isRefreshing && (
-          <>
-            {/* Tasks Tab */}
-            {activeTab === 'tasks' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-600">
-                  <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3">Task</th>
-                      <th scope="col" className="px-6 py-3">Type</th>
-                      <th scope="col" className="px-6 py-3">Status</th>
-                      <th scope="col" className="px-6 py-3">Owner</th>
-                      <th scope="col" className="px-6 py-3">Due Date</th>
-                      <th scope="col" className="px-6 py-3">Cost</th>
-                      <th scope="col" className="px-6 py-3">Paid</th>
-                      {role === 'admin' && <th scope="col" className="px-6 py-3 text-right">Actions</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTasks.length > 0 ? filteredTasks.map(task => (
-                      <tr key={task.id} className="bg-white border-b hover:bg-gray-50">
-                        <td className="px-6 py-4 font-medium text-gray-900">{task.name}</td>
-                        <td className="px-6 py-4">{task.type}</td>
-                        <td className="px-6 py-4"><StatusPill status={task.status} /></td>
-                        <td className="px-6 py-4">{task.owner}</td>
-                        <td className="px-6 py-4">{task.dueDate}</td>
-                        <td className="px-6 py-4">₱{task.cost.toLocaleString()}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${task.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {task.paid ? 'Paid' : 'Unpaid'}
-                          </span>
-                        </td>
-                        {role === 'admin' && (
-                          <td className="px-6 py-4 flex justify-end gap-2">
-                            <button 
-                              onClick={() => { setEditingItem(task); setIsTaskModalOpen(true); }}
-                              className="p-2 text-gray-500 hover:text-blue-600"
-                              disabled={isLoading}
-                            >
-                              <PencilIcon />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteTask(task.id)}
-                              className="p-2 text-gray-500 hover:text-red-600"
-                              disabled={isLoading}
-                            >
-                              <TrashIcon />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={role === 'admin' ? 8 : 7} className="text-center py-10 text-gray-500">
-                          No tasks found. {role === 'admin' && 'Click "Add task" to get started.'}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+        const jsonStr = response.text.trim();
+        const result = JSON.parse(jsonStr);
 
-            {/* Labor Tab */}
-            {activeTab === 'labor' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-600">
-                  <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3">Role</th>
-                      <th scope="col" className="px-6 py-3">Workers</th>
-                      <th scope="col" className="px-6 py-3">Rate Type</th>
-                      <th scope="col" className="px-6 py-3">Rate</th>
-                      <th scope="col" className="px-6 py-3">Qty</th>
-                      <th scope="col" className="px-6 py-3">Total Cost</th>
-                      <th scope="col" className="px-6 py-3">Date</th>
-                      <th scope="col" className="px-6 py-3">Paid</th>
-                      {role === 'admin' && <th scope="col" className="px-6 py-3 text-right">Actions</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredLabor.length > 0 ? filteredLabor.map(labor => (
-                      <tr key={labor.id} className="bg-white border-b hover:bg-gray-50">
-                        <td className="px-6 py-4 font-medium text-gray-900">{labor.crewRole}</td>
-                        <td className="px-6 py-4">{labor.workers}</td>
-                        <td className="px-6 py-4">{labor.rateType}</td>
-                        <td className="px-6 py-4">₱{labor.rate.toLocaleString()}</td>
-                        <td className="px-6 py-4">{labor.qty}</td>
-                        <td className="px-6 py-4">₱{labor.cost.toLocaleString()}</td>
-                        <td className="px-6 py-4">{labor.startDate}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${labor.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {labor.paid ? 'Paid' : 'Unpaid'}
-                          </span>
-                        </td>
-                        {role === 'admin' && (
-                          <td className="px-6 py-4 flex justify-end gap-2">
-                            <button 
-                              onClick={() => { setEditingItem(labor); setIsLaborModalOpen(true); }}
-                              className="p-2 text-gray-500 hover:text-blue-600"
-                              disabled={isLoading}
-                            >
-                              <PencilIcon />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteLabor(labor.id)}
-                              className="p-2 text-gray-500 hover:text-red-600"
-                              disabled={isLoading}
-                            >
-                              <TrashIcon />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={role === 'admin' ? 9 : 8} className="text-center py-10 text-gray-500">
-                          No labor entries found. {role === 'admin' && 'Click "Add labor" to get started.'}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+        if (result.items && Array.isArray(result.items)) {
+            setExtractedItems(result.items.map((item: any) => ({ ...item, selected: true, category: 'Other', paid: false, received: false })));
+            setView('review');
+        } else {
+            throw new Error("Could not find items in the response.");
+        }
 
-            {/* Materials Tab */}
-            {activeTab === 'materials' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-600">
-                  <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3">Image</th>
-                      <th scope="col" className="px-6 py-3">Item</th>
-                      <th scope="col" className="px-6 py-3">Category</th>
-                      <th scope="col" className="px-6 py-3">Qty</th>
-                      <th scope="col" className="px-6 py-3">Unit Cost</th>
-                      <th scope="col" className="px-6 py-3">Total Cost</th>
-                      <th scope="col" className="px-6 py-3">Supplier</th>
-                      <th scope="col" className="px-6 py-3">Status</th>
-                      {role === 'admin' && <th scope="col" className="px-6 py-3 text-right">Actions</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredMaterials.length > 0 ? filteredMaterials.map(material => (
-                      <tr key={material.id} className="bg-white border-b hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          {material.attachment?.value ? (
-                            <img 
-                              src={material.attachment.value} 
-                              alt={material.item}
-                              className="w-12 h-12 object-cover rounded-md"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center">
-                              <ImageIcon className="h-6 w-6 text-gray-400" />
+      } catch (error) {
+          console.error("Gemini API error:", error);
+          setScanError("Sorry, I couldn't read that receipt. Please try another image or enter items manually.");
+          setView('manual');
+      }
+    };
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                scanReceipt(reader.result as string, file.name);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleExtractedItemChange = (index: number, field: keyof ExtractedMaterial, value: any) => {
+        setExtractedItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+    };
+    
+    const handleToggleAllSelected = (selected: boolean) => {
+        setExtractedItems(prev => prev.map(item => ({ ...item, selected })));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (view === 'review') {
+            const itemsToSave = extractedItems
+                .filter(item => item.selected)
+                .map(({selected, ...itemData}) => ({
+                    ...itemData,
+                    attachment: receiptImage ? {type: 'local', value: receiptImage.b64, name: receiptImage.name} as Attachment : undefined
+                }));
+            
+            if (itemsToSave.length > 0) {
+                await onSaveMultiple(itemsToSave);
+            } else {
+                onClose();
+            }
+        } else if (formData) {
+            onSave(formData);
+        }
+    };
+
+    if (!isOpen || !formData) return null;
+
+    const inputClass = "w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+    const labelClass = "block text-sm font-medium text-gray-700 mb-1";
+    const title = view === 'review' ? 'Review Extracted Items' : `${formData.id ? 'Edit' : 'Add'} ${itemType.charAt(0).toUpperCase() + itemType.slice(1, -1)}`;
+    const allSelected = extractedItems.every(i => i.selected);
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+            <div className={`bg-white rounded-xl shadow-xl w-full max-h-[90vh] flex flex-col ${view === 'review' ? 'max-w-4xl' : 'max-w-2xl'}`} onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center p-4 border-b">
+                    <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100"><XIcon /></button>
+                </div>
+                
+                { view === 'loading' ? (
+                    <div className="flex flex-col items-center justify-center p-12 text-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <p className="mt-4 text-gray-600 font-semibold">Scanning receipt...</p>
+                        <p className="text-sm text-gray-500">Gemini is extracting the line items for you.</p>
+                    </div>
+                ) : view === 'review' ? (
+                    <>
+                        <div className="p-6 overflow-y-auto">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="text-left text-gray-500 font-medium">
+                                        <tr>
+                                            <th className="p-2"><input type="checkbox" checked={allSelected} onChange={e => handleToggleAllSelected(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"/></th>
+                                            <th className="p-2">Item</th>
+                                            <th className="p-2 w-20">Qty</th>
+                                            <th className="p-2 w-28">Unit Cost</th>
+                                            <th className="p-2 w-28">Total Cost</th>
+                                            <th className="p-2 w-32">Paid</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    {extractedItems.map((item, index) => (
+                                        <tr key={index} className="border-b last:border-b-0">
+                                            <td className="p-2"><input type="checkbox" checked={item.selected} onChange={e => handleExtractedItemChange(index, 'selected', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"/></td>
+                                            <td className="p-2"><input type="text" value={item.item || ''} onChange={e => handleExtractedItemChange(index, 'item', e.target.value)} className={inputClass} /></td>
+                                            <td className="p-2"><input type="number" value={item.qty || 0} onChange={e => handleExtractedItemChange(index, 'qty', parseFloat(e.target.value) || 0)} className={`${inputClass} tabular-nums`} /></td>
+                                            <td className="p-2"><input type="number" value={item.unitCost || 0} onChange={e => handleExtractedItemChange(index, 'unitCost', parseFloat(e.target.value) || 0)} className={`${inputClass} tabular-nums`} /></td>
+                                            <td className="p-2"><input type="number" value={item.totalCost || 0} onChange={e => handleExtractedItemChange(index, 'totalCost', parseFloat(e.target.value) || 0)} className={`${inputClass} tabular-nums`} /></td>
+                                            <td className="p-2"><div className="flex items-center"><input type="checkbox" checked={item.paid} onChange={e => handleExtractedItemChange(index, 'paid', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"/></div></td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
                             </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 font-medium text-gray-900">{material.item}</td>
-                        <td className="px-6 py-4">{material.category}</td>
-                        <td className="px-6 py-4">{material.qty} {material.unit}</td>
-                        <td className="px-6 py-4">₱{material.unitCost.toLocaleString()}</td>
-                        <td className="px-6 py-4">₱{material.totalCost.toLocaleString()}</td>
-                        <td className="px-6 py-4">{material.supplier}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${material.received ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                              {material.received ? 'Received' : 'Pending'}
-                            </span>
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${material.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                              {material.paid ? 'Paid' : 'Unpaid'}
-                            </span>
-                          </div>
-                        </td>
-                        {role === 'admin' && (
-                          <td className="px-6 py-4 flex justify-end gap-2">
-                            <button 
-                              onClick={() => { setEditingItem(material); setIsMaterialModalOpen(true); }}
-                              className="p-2 text-gray-500 hover:text-blue-600"
-                              disabled={isLoading}
-                            >
-                              <PencilIcon />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteMaterial(material.id)}
-                              className="p-2 text-gray-500 hover:text-red-600"
-                              disabled={isLoading}
-                            >
-                              <TrashIcon />
-                            </button>
-                          </td>
+                        </div>
+                        <div className="flex justify-between items-center p-4 border-t bg-gray-50/70">
+                            <button type="button" onClick={() => setView('manual')} className="text-sm text-blue-600 hover:underline">Switch to Manual Entry</button>
+                            <div className="flex gap-3">
+                                <button type="button" onClick={onClose} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 text-base font-semibold rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+                                <button type="button" onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 text-base font-semibold rounded-lg hover:bg-blue-700 transition-colors">Add Selected Items</button>
+                            </div>
+                        </div>
+                    </>
+                ) : ( // Manual view
+                    <>
+                    <form id="item-form" onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+                        { itemType === 'materials' && (
+                            <div>
+                                <label className={labelClass}>Scan a Receipt</label>
+                                <label htmlFor="receipt-upload" className="relative cursor-pointer mt-1 flex justify-center w-full px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg text-center hover:border-blue-400 transition-colors">
+                                    <div className="space-y-1 text-center">
+                                        <svg className="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                        <div className="flex text-sm text-gray-600">
+                                            <span className="font-medium text-blue-600 hover:text-blue-500">Upload a file</span>
+                                            <p className="pl-1">or drag and drop</p>
+                                        </div>
+                                        <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                                    </div>
+                                    <input id="receipt-upload" name="receipt-upload" type="file" className="sr-only" onChange={handleFileChange} accept="image/*" />
+                                </label>
+                                {scanError && <p className="mt-2 text-sm text-red-600">{scanError}</p>}
+                                <div className="flex items-center my-4">
+                                    <div className="flex-grow border-t border-gray-200"></div>
+                                    <span className="flex-shrink mx-4 text-sm text-gray-400">OR</span>
+                                    <div className="flex-grow border-t border-gray-200"></div>
+                                </div>
+                                <h3 className="text-base font-semibold text-gray-800 text-center">Enter Manually</h3>
+                            </div>
                         )}
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={role === 'admin' ? 9 : 8} className="text-center py-10 text-gray-500">
-                          No materials found. {role === 'admin' && 'Click "Add material" to get started.'}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+                        { itemType === 'tasks' && (
+                           <>
+                                <div>
+                                    <label htmlFor="name" className={labelClass}>Task Name</label>
+                                    <input type="text" name="name" value={(formData as Task).name || ''} onChange={handleChange} className={inputClass} required />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="status" className={labelClass}>Status</label>
+                                        <select name="status" value={(formData as Task).status} onChange={handleChange} className={inputClass}>
+                                            {(['Pending', 'Backlog', 'In Progress', 'Blocked', 'Review', 'Done'] as TaskStatus[]).map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="type" className={labelClass}>Type</label>
+                                        <select name="type" value={(formData as Task).type} onChange={handleChange} className={inputClass}>
+                                            {(['Design', 'Site Prep', 'Foundation', 'Structure', 'MEP', 'Finish', 'Inspection'] as TaskType[]).map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="dueDate" className={labelClass}>Due Date</label>
+                                        <input type="date" name="dueDate" value={(formData as Task).dueDate || ''} onChange={handleChange} className={inputClass} />
+                                    </div>
+                                     <div>
+                                        <label htmlFor="cost" className={labelClass}>Cost (₱)</label>
+                                        <input type="number" name="cost" value={(formData as Task).cost || 0} onChange={handleChange} className={`${inputClass} tabular-nums`} />
+                                    </div>
+                                </div>
+                           </>
+                        )}
+                        { itemType === 'labor' && (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="workers" className={labelClass}>Worker(s) Name</label>
+                                        <input type="text" name="workers" value={(formData as Labor).workers || ''} onChange={handleChange} className={inputClass} required />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="crewRole" className={labelClass}>Role</label>
+                                        <input type="text" name="crewRole" value={(formData as Labor).crewRole || ''} onChange={handleChange} className={inputClass} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="startDate" className={labelClass}>Date</label>
+                                        <input type="date" name="startDate" value={(formData as Labor).startDate || ''} onChange={handleChange} className={inputClass} required/>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="qty" className={labelClass}>Hours Worked</label>
+                                        <input type="number" name="qty" value={(formData as Labor).qty || 0} onChange={handleChange} className={`${inputClass} tabular-nums`} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div>
+                                        <label htmlFor="rate" className={labelClass}>Hourly Rate (₱)</label>
+                                        <input type="number" name="rate" value={(formData as Labor).rate || 0} onChange={handleChange} className={`${inputClass} tabular-nums`} />
+                                    </div>
+                                     <div>
+                                        <label htmlFor="cost" className={labelClass}>Total Cost (₱)</label>
+                                        <input type="number" name="cost" readOnly value={(formData as Labor).cost || 0} onChange={handleChange} className={`${inputClass} bg-gray-50 tabular-nums`} />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                         { itemType === 'materials' && (
+                             <>
+                                <div>
+                                    <label htmlFor="item" className={labelClass}>Item Name</label>
+                                    <input type="text" name="item" value={(formData as Material).item || ''} onChange={handleChange} className={inputClass} required />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="category" className={labelClass}>Category</label>
+                                        <select name="category" value={(formData as Material).category} onChange={handleChange} className={inputClass}>
+                                            {(['Aggregates', 'Timber', 'Steel', 'Electrical', 'Plumbing', 'Finishes', 'Fixtures', 'Other'] as MaterialCategory[]).map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="supplier" className={labelClass}>Supplier</label>
+                                        <input type="text" name="supplier" value={(formData as Material).supplier || ''} onChange={handleChange} className={inputClass} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label htmlFor="qty" className={labelClass}>Quantity</label>
+                                        <input type="number" name="qty" value={(formData as Material).qty || 0} onChange={handleChange} className={`${inputClass} tabular-nums`} />
+                                    </div>
+                                     <div>
+                                        <label htmlFor="unitCost" className={labelClass}>Unit Cost (₱)</label>
+                                        <input type="number" name="unitCost" value={(formData as Material).unitCost || 0} onChange={handleChange} className={`${inputClass} tabular-nums`} />
+                                    </div>
+                                     <div>
+                                        <label htmlFor="totalCost" className={labelClass}>Total Cost (₱)</label>
+                                        <input type="number" name="totalCost" readOnly value={(formData as Material).totalCost || 0} onChange={handleChange} className={`${inputClass} bg-gray-50 tabular-nums`} />
+                                    </div>
+                                </div>
+                             </>
+                        )}
+                        <div>
+                            <label htmlFor="notes" className={labelClass}>Notes</label>
+                            <textarea name="notes" rows={2} value={formData.notes || ''} onChange={handleChange} className={inputClass}></textarea>
+                        </div>
+                         <div className="flex items-center gap-4 pt-2">
+                            <div className="flex items-center">
+                                <input id="paid" name="paid" type="checkbox" checked={formData.paid || false} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                                <label htmlFor="paid" className="ml-2 block text-sm text-gray-900">Paid</label>
+                            </div>
+                             {itemType === 'materials' && <div className="flex items-center">
+                                <input id="received" name="received" type="checkbox" checked={(formData as Material).received || false} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                                <label htmlFor="received" className="ml-2 block text-sm text-gray-900">Received</label>
+                            </div>}
+                        </div>
 
-      {/* Modals */}
-      {isTaskModalOpen && (
-        <TaskModal
-          task={editingItem || { projectId: project.id }}
-          onClose={() => { setIsTaskModalOpen(false); setEditingItem(null); }}
-          onSave={handleSaveTask}
-          isLoading={isLoading}
-        />
-      )}
-
-      {isLaborModalOpen && (
-        <LaborModal
-          labor={editingItem || { projectId: project.id }}
-          onClose={() => { setIsLaborModalOpen(false); setEditingItem(null); }}
-          onSave={handleSaveLabor}
-          isLoading={isLoading}
-        />
-      )}
-
-      {isMaterialModalOpen && (
-        <MaterialModal
-          material={editingItem || { projectId: project.id }}
-          onClose={() => { setIsMaterialModalOpen(false); setEditingItem(null); }}
-          onSave={handleSaveMaterial}
-          isLoading={isLoading}
-        />
-      )}
-    </div>
-  );
+                    </form>
+                    <div className="flex justify-end gap-3 p-4 border-t bg-gray-50/70 rounded-b-xl">
+                        <button type="button" onClick={onClose} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 text-base font-semibold rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+                        <button type="submit" form="item-form" className="bg-blue-600 text-white px-4 py-2 text-base font-semibold rounded-lg hover:bg-blue-700 transition-colors">Save</button>
+                    </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
 };
 
-export default VincenteHouseModule;
+
+const ProjectToolbar: React.FC<{
+    role: UserRole;
+    onAdd: () => void;
+    itemNoun: string;
+}> = ({ role, onAdd, itemNoun }) => {
+    return (
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+            <div className="relative flex-grow w-full">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input type="text" placeholder="Search..." className="w-full pl-9 pr-3 py-2 text-base border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white focus:border-blue-500" />
+            </div>
+            <button className="w-full sm:w-auto flex-shrink-0 flex justify-center items-center gap-1.5 px-4 py-2 text-base border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors whitespace-nowrap">
+                <FilterIcon className="h-4 w-4" />
+                <span>Filter</span>
+            </button>
+            <button 
+                onClick={onAdd} 
+                disabled={role !== 'admin'}
+                className="w-full sm:w-auto flex-shrink-0 flex justify-center items-center gap-1.5 px-4 py-2 text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+                <PlusIcon />
+                <span>Add {itemNoun}</span>
+            </button>
+        </div>
+    );
+};
+
+
+// --- MAIN MODULE ---
+
+type SortableKeys = keyof Task | keyof Labor | keyof Material;
+
+const ProjectModule: React.FC<{
+    project: { id: string; name: string };
+    role: UserRole;
+    showToast: (msg: string) => void;
+    projectData: ProjectData;
+    onUpdateProjectData: (updatedData: ProjectData) => void;
+}> = ({ project, role, showToast, projectData, onUpdateProjectData }) => {
+    const [activeTab, setActiveTab] = useState<ActiveTab>('tasks');
+    const { tasks, labor, materials } = projectData;
+    
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<Partial<ProjectItem> | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+    const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' } | null>({ key: 'name', direction: 'ascending'});
+    
+    useEffect(() => {
+        handleTabChange('tasks');
+    }, [project.id]);
+
+
+    const handleTabChange = (tab: ActiveTab) => {
+        setActiveTab(tab);
+        // Reset sorting when tab changes
+        const defaultSortKeys: Record<ActiveTab, SortableKeys> = {
+            tasks: 'name',
+            labor: 'startDate',
+            materials: 'item',
+        };
+        setSortConfig({ key: defaultSortKeys[tab], direction: 'descending' });
+    };
+
+    const sortedData = useMemo(() => {
+        let sortableItems: ProjectItem[] = [];
+        if (activeTab === 'tasks') sortableItems = [...tasks];
+        if (activeTab === 'labor') sortableItems = [...labor];
+        if (activeTab === 'materials') sortableItems = [...materials];
+
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                const aVal = a[sortConfig.key as keyof ProjectItem];
+                const bVal = b[sortConfig.key as keyof ProjectItem];
+                if (aVal < bVal) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'ascending' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [tasks, labor, materials, activeTab, sortConfig]);
+
+    const requestSort = (key: SortableKeys) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+    
+    // --- CRUD Handlers ---
+
+    const handleAddNew = () => {
+      if (role !== 'admin') {
+          showToast("You don't have permission to add items.");
+          return;
+      }
+      const baseItem = { id: '', projectId: project.id, notes: '', paid: false };
+      let newItem: Partial<ProjectItem>;
+      switch (activeTab) {
+          case 'tasks': newItem = { ...baseItem, name: '', status: 'Backlog', type: 'Design', dueDate: '' } as Partial<Task>; break;
+          case 'labor': newItem = { ...baseItem, crewRole: '', workers: '', rateType: 'Daily', qty: 8, rate: 62.5, cost: 500, startDate: '' } as Partial<Labor>; break;
+          case 'materials': newItem = { ...baseItem, item: '', category: 'Other', unit: 'pc', qty: 1, unitCost: 0, totalCost: 0, supplier: '' } as Partial<Material>; break;
+      }
+      setEditingItem(newItem);
+      setIsModalOpen(true);
+    };
+
+    const handleEdit = (item: ProjectItem) => {
+      if (role !== 'admin') {
+          showToast("You don't have permission to edit items.");
+          return;
+      }
+      setEditingItem(item);
+      setIsModalOpen(true);
+    };
+
+    const requestDeleteItem = (itemId: string) => {
+        if (role !== 'admin') {
+            showToast("You don't have permission to delete items.");
+            return;
+        }
+        setConfirmDeleteId(itemId);
+    };
+
+    const confirmDeleteItem = () => {
+        if (!confirmDeleteId) return;
+        const itemId = confirmDeleteId;
+
+        const itemToDelete = [...tasks, ...labor, ...materials].find(i => i.id === itemId);
+        if (itemToDelete?.attachment?.type === 'indexeddb') {
+            deleteAttachment(itemToDelete.attachment.value).catch(err => console.error("Failed to delete attachment from DB", err));
+        }
+
+        let updatedData = { ...projectData };
+        switch (activeTab) {
+            case 'tasks': updatedData.tasks = tasks.filter(t => t.id !== itemId); break;
+            case 'labor': updatedData.labor = labor.filter(l => l.id !== itemId); break;
+            case 'materials': updatedData.materials = materials.filter(m => m.id !== itemId); break;
+        }
+        onUpdateProjectData(updatedData);
+        showToast('Item deleted.');
+        setConfirmDeleteId(null);
+    };
+
+    const cancelDelete = () => {
+        setConfirmDeleteId(null);
+    };
+
+    const handleSave = (itemToSave: Partial<ProjectItem>) => {
+        let updatedData = { ...projectData };
+        if (itemToSave.id) { // Update
+            switch (activeTab) {
+                case 'tasks': updatedData.tasks = tasks.map(i => i.id === itemToSave.id ? itemToSave as Task : i); break;
+                case 'labor': updatedData.labor = labor.map(i => i.id === itemToSave.id ? itemToSave as Labor : i); break;
+                case 'materials': updatedData.materials = materials.map(i => i.id === itemToSave.id ? itemToSave as Material : i); break;
+            }
+            showToast('Item updated.');
+        } else { // Create
+            const newItem = { ...itemToSave, id: simpleId() };
+             switch (activeTab) {
+                case 'tasks': updatedData.tasks = [...tasks, newItem as Task]; break;
+                case 'labor': updatedData.labor = [...labor, newItem as Labor]; break;
+                case 'materials': updatedData.materials = [...materials, newItem as Material]; break;
+            }
+            showToast('Item added.');
+        }
+        onUpdateProjectData(updatedData);
+        setIsModalOpen(false);
+        setEditingItem(null);
+    };
+
+    const handleSaveMultiple = async (itemsToSave: Partial<ProjectItem>[]) => {
+        const newItems = await Promise.all(itemsToSave.map(async (item) => {
+            const newItemId = simpleId();
+            let newAttachment: Attachment | undefined = undefined;
+            const materialItem = item as Partial<Material>;
+
+            if (materialItem.attachment?.type === 'local' && materialItem.attachment.value) {
+                const attachmentKey = `attachment-${newItemId}`;
+                try {
+                    await saveAttachment(attachmentKey, materialItem.attachment.value);
+                    newAttachment = {
+                        type: 'indexeddb',
+                        value: attachmentKey,
+                        name: materialItem.attachment.name,
+                    };
+                } catch (err) {
+                    console.error("Failed to save attachment to IndexedDB", err);
+                }
+            } else {
+                newAttachment = materialItem.attachment;
+            }
+
+            return {
+                ...item,
+                id: newItemId,
+                projectId: project.id,
+                attachment: newAttachment,
+            };
+        }));
+
+        let updatedData = { ...projectData };
+        switch(activeTab) {
+            case 'materials': updatedData.materials = [...materials, ...newItems as Material[]]; break;
+        }
+
+        onUpdateProjectData(updatedData);
+        showToast(`${itemsToSave.length} items added successfully.`);
+        setIsModalOpen(false);
+        setEditingItem(null);
+    };
+
+    const handleTogglePaidStatus = (itemId: string) => {
+        if (role !== 'admin') {
+            showToast("You don't have permission to update status.");
+            return;
+        }
+
+        const updater = <T extends {id: string; paid: boolean;}>(items: T[]) => items.map(item => 
+            item.id === itemId ? { ...item, paid: !item.paid } : item
+        );
+        
+        let updatedData = { ...projectData };
+        if (activeTab === 'labor') {
+            updatedData.labor = updater(labor);
+        } else if (activeTab === 'materials') {
+            updatedData.materials = updater(materials);
+        }
+        onUpdateProjectData(updatedData);
+        showToast('Paid status updated.');
+    };
+
+    // --- Render Logic ---
+    const TABS: { id: ActiveTab; label: string; count: number }[] = [
+        { id: 'tasks', label: 'Tasks', count: tasks.length },
+        { id: 'labor', label: 'Labor', count: labor.length },
+        { id: 'materials', label: 'Materials', count: materials.length },
+    ];
+    
+    const renderActiveTabContent = () => {
+        const commonProps = {
+            role,
+            sortConfig,
+            requestSort,
+            handleEdit,
+            requestDeleteItem,
+            confirmDeleteId,
+            confirmDeleteItem,
+            cancelDelete,
+        };
+
+        switch(activeTab) {
+            case 'tasks':
+                return <TasksView items={sortedData as Task[]} {...commonProps} />;
+            case 'labor':
+                return <LaborView items={sortedData as Labor[]} {...commonProps} handleTogglePaidStatus={handleTogglePaidStatus} />;
+            case 'materials':
+                return <MaterialsView items={sortedData as Material[]} {...commonProps} handleTogglePaidStatus={handleTogglePaidStatus} />;
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200/80">
+            <div className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="w-full sm:w-auto border-b border-gray-200 sm:border-b-0">
+                        <nav className="flex -mb-px overflow-x-auto">
+                            {TABS.map(tab => (
+                                <button key={tab.id} onClick={() => handleTabChange(tab.id)}
+                                    className={`whitespace-nowrap flex-shrink-0 flex items-center gap-2 px-3 sm:px-4 py-3 text-sm font-medium transition-colors ${
+                                        activeTab === tab.id
+                                        ? 'border-b-2 border-blue-600 text-blue-600'
+                                        : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent'
+                                    }`}
+                                >
+                                    {tab.label}
+                                    <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                                        {tab.count}
+                                    </span>
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+                    <div className="w-full sm:w-auto flex-shrink-0">
+                        <ProjectToolbar role={role} onAdd={handleAddNew} itemNoun={activeTab.slice(0, -1)} />
+                    </div>
+                </div>
+            </div>
+            
+            {renderActiveTabContent()}
+
+            <ItemFormModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSave}
+                onSaveMultiple={handleSaveMultiple}
+                item={editingItem}
+                itemType={activeTab}
+            />
+        </div>
+    );
+};
+
+export default ProjectModule;

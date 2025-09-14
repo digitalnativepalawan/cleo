@@ -2,8 +2,7 @@ import React from 'react';
 import { LeafIcon } from './icons/LeafIcon';
 import { UsersGroupIcon } from './icons/UsersGroupIcon';
 import { ShieldCheckIcon } from './icons/ShieldCheckIcon';
-import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
-import type { Currency } from '../App';
+import type { Currency } from '../src/types/index.ts';
 
 const WavePattern = () => (
     <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
@@ -15,12 +14,12 @@ const WavePattern = () => (
 );
 
 const ESGPillarCard = ({ icon, title, points }: { icon: React.ReactNode, title: string, points: string[] }) => (
-    <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full">
+    <div className="bg-[var(--bg-primary)] p-8 rounded-lg shadow-md hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full">
         <div className="flex items-center mb-5">
-            <span className="text-[#0A84FF] mr-4">{icon}</span>
-            <h3 className="font-serif text-lg sm:text-xl font-normal text-[#121212]">{title}</h3>
+            <span className="text-[var(--accent-primary)] mr-4">{icon}</span>
+            <h3 className="font-sans text-lg sm:text-xl font-semibold text-[var(--text-primary)] tracking-tight leading-tight">{title}</h3>
         </div>
-        <ul className="space-y-3 text-gray-600 flex-grow">
+        <ul className="space-y-3 text-[var(--text-secondary)] flex-grow">
             {points.map((point, i) => (
                 <li key={i} className="flex items-start">
                     <span className="text-green-500 mr-3 mt-1 flex-shrink-0">
@@ -75,11 +74,11 @@ const ESG: React.FC<ESGProps> = ({ weeklyTotals, currency }) => {
     ];
 
     return (
-        <section id="esg" className="relative bg-white py-20 sm:py-24 overflow-hidden">
+        <section id="esg" className="relative bg-[var(--bg-primary)] py-20 sm:py-24 overflow-hidden">
             <div className="container mx-auto px-6 relative z-10">
                 <div className="text-center mb-16">
-                    <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Environmental, Social, & Governance (ESG) Commitment</h2>
-                    <p className="text-lg text-gray-600 mt-2 max-w-3xl mx-auto">Our framework for sustainable growth, community partnership, and responsible investment.</p>
+                    <h2 className="font-sans text-3xl sm:text-4xl font-semibold text-[var(--text-primary)] tracking-tight leading-tight">Environmental, Social, & Governance (ESG) Commitment</h2>
+                    <p className="text-lg text-[var(--text-secondary)] mt-2 max-w-3xl mx-auto leading-relaxed">Our framework for sustainable growth, community partnership, and responsible investment.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
                     {pillars.map(pillar => (

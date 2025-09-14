@@ -9,7 +9,7 @@ const AccreditationBanner: React.FC = () => {
                     alt="Philippine Retirement Authority Logo" 
                     className="w-auto h-24 mb-6"
                 />
-                <h3 className="font-serif text-2xl text-gray-800 mx-auto">
+                <h3 className="font-sans text-2xl font-semibold text-gray-800 mx-auto tracking-tight leading-tight">
                     First Resort in Palawan accredited by the Philippine Retirement Authority
                 </h3>
             </div>

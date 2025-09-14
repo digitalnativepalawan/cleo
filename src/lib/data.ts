@@ -1,9 +1,6 @@
-// Fix: Import ProjectData from the central types file.
-import type { Task, Labor, Material, Attachment, ProjectData } from '../src/types/portal.ts';
+import type { Task, Labor, Material, Attachment, ProjectData } from '../types/portal.ts';
 
 const simpleId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-// Fix: Removed ProjectData interface as it has been moved to types/portal.ts
 
 const vincenteTasks: Task[] = [
     { id: simpleId(), projectId: 'project-vincente', name: 'install hardiflex then paint white', type: 'Finish', status: 'In Progress', owner: '', startDate: '', dueDate: '2025-09-02', estHours: 0, cost: 0, tags: [], order: 0, notes: '', paid: false },

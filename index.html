@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
-   <head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Palawan Integrated Tourism Ecosystem</title>
+    <link rel="manifest" href="/manifest.json" />
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="A landing page for the comprehensive business plan of the Palawan Integrated Tourism, Investment & Infrastructure Ecosystem, a balanced alliance between Cleopatra SIRV Holdings Inc. and Binga Beach Brothers Inc." />
@@ -21,7 +22,7 @@
         "@type": "Organization",
         "name": "Cleopatra SIRV × Binga Beach Brothers",
         "description": "A balanced alliance delivering real-world assets in Palawan: eco-villas & resort ops, farm-to-table agriculture, hardware & construction supply, and compliant structures with transparent reporting.",
-        "logo": "https://bingabeach.com/wp-content/uploads/2019/02/cropped-bb-logo.png",
+        "logo": "/logos/binga-beach-logo.png",
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Lumambong Beach",
@@ -53,7 +54,7 @@
           "https://www.instagram.com/bingabeachpalawan/",
           "https://www.facebook.com/bingabeachresort",
           "https://x.com/bingabeach",
-          "https://github.com/digitalnativepalawan/palawan-tourism-ecosystem"
+          "https://github.com/digitalnativepalawan/cleo"
         ]
       },
       "publisher": {
@@ -61,7 +62,7 @@
         "name": "Cleopatra SIRV × Binga Beach Brothers",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://bingabeach.com/wp-content/uploads/2019/02/cropped-bb-logo.png"
+          "url": "/logos/binga-beach-logo.png"
         }
       }
     }
@@ -71,69 +72,24 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              serif: ['"EB Garamond"', 'serif'],
-              sans: ['Inter', 'sans-serif'],
-            },
-          },
-        },
-      }
-    </script>
-    <style>
-      html, body {
-        overflow-x: hidden;
-      }
-      body {
-        font-family: 'Inter', sans-serif;
-        color: #121212;
-        word-break: break-word;
-        hyphens: auto;
-      }
-      section[id] {
-        scroll-margin-top: 6.5rem; /* 104px, to account for larger shrunken sticky header height on desktop */
-      }
-      @keyframes blink {
-        50% { opacity: 0; }
-      }
-      .blinking-colon {
-        animation: blink 1s step-start infinite;
-      }
-      /* Custom Scrollbar Styles */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
+    
+    <link rel="stylesheet" href="/src/styles/globals.css">
 
-      ::-webkit-scrollbar-track {
-        background-color: #f1f5f9; /* Tailwind slate-100 */
-      }
-
-      ::-webkit-scrollbar-thumb {
-        background-color: #94a3b8; /* Tailwind slate-400 */
-        border-radius: 4px;
-      }
-
-      ::-webkit-scrollbar-thumb:hover {
-        background-color: #64748b; /* Tailwind slate-500 */
-      }
-    </style>
   <script type="importmap">
 {
   "imports": {
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
     "react": "https://aistudiocdn.com/react@^19.1.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "recharts": "https://aistudiocdn.com/recharts@^2.12.7"
+    "recharts": "https://aistudiocdn.com/recharts@^2.12.7",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.19.0"
   }
 }
 </script>
 </head>
   <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <script type="module" context="module" src="/index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

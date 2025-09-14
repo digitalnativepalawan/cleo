@@ -6,12 +6,12 @@ import {
     DownloadIcon, ArchiveIcon, XIcon, MenuIcon
 } from './portal/PortalIcons';
 
-import { INITIAL_PROJECTS, calculateWeeklyTotals, calculateAllProjectsWeeklyTotals } from '../data/mockData';
+import { INITIAL_PROJECTS, calculateWeeklyTotals, calculateAllProjectsWeeklyTotals } from '../src/lib/data.ts';
 import MainDashboard from './portal/modules/MainDashboard';
 import ProjectModule from './portal/modules/VincenteHouseModule'; // Using VincenteHouseModule as the unified module
 import BlogManagementModule from './BlogManagementModule';
-import type { BlogPost } from '../App';
-import type { ProjectData } from '../types/portal';
+import type { BlogPost } from '../src/types/index.ts';
+import type { ProjectData } from '../src/types/portal.ts';
 
 // --- UI COMPONENTS ---
 
@@ -41,7 +41,7 @@ const SidePanel: React.FC<{
 
     return (
         <div className="space-y-6">
-            <div className="bg-white p-5 rounded-xl border border-gray-200">
+            <div className="bg-[var(--bg-primary)] p-5 rounded-xl border border-[var(--border-primary)]">
                 <h3 className="font-semibold text-gray-800 mb-4">Project Overview</h3>
                 <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
@@ -54,18 +54,18 @@ const SidePanel: React.FC<{
                     </div>
                      <div className="flex justify-between">
                         <span className="text-gray-500">Total Budget</span>
-                        <span className="font-medium text-gray-800">₱{totalCost.toLocaleString()}</span>
+                        <span className="font-medium text-gray-800 tabular-nums">₱{totalCost.toLocaleString()}</span>
                     </div>
                     <div>
                         <span className="text-gray-500">Progress</span>
                         <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
                             <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
                         </div>
-                         <p className="text-right text-xs text-gray-500 mt-1">{progress}% Complete</p>
+                         <p className="text-right text-xs text-gray-500 mt-1 tabular-nums">{progress}% Complete</p>
                     </div>
                 </div>
             </div>
-             <div className="bg-white p-5 rounded-xl border border-gray-200">
+             <div className="bg-[var(--bg-primary)] p-5 rounded-xl border border-[var(--border-primary)]">
                 <h3 className="font-semibold text-gray-800 mb-4">Team</h3>
                 <div className="flex flex-wrap gap-2">
                     {teamMembers.map(member => (
@@ -74,7 +74,7 @@ const SidePanel: React.FC<{
                 </div>
             </div>
              {role === 'admin' && (
-                <div className="bg-white p-5 rounded-xl border border-gray-200">
+                <div className="bg-[var(--bg-primary)] p-5 rounded-xl border border-[var(--border-primary)]">
                     <h3 className="font-semibold text-gray-800 mb-4">Admin Actions</h3>
                     <div className="space-y-2">
                          <button className="w-full text-left flex items-center gap-2 text-sm text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -151,7 +151,7 @@ export const ProjectsWorkspace: React.FC<{
     };
     
     return (
-        <div className="h-full bg-gray-50 md:flex">
+        <div className="h-full bg-[var(--bg-secondary)] md:flex">
             {/* Overlay for mobile */}
             {isSidebarOpen && (
                  <div
@@ -161,10 +161,10 @@ export const ProjectsWorkspace: React.FC<{
                 />
             )}
             {/* Sidebar */}
-            <aside className={`fixed top-0 left-0 h-full w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-300 ease-in-out z-40 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <aside className={`fixed top-0 left-0 h-full w-64 flex-shrink-0 bg-[var(--bg-primary)] border-r border-[var(--border-primary)] flex flex-col transform transition-transform duration-300 ease-in-out z-40 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                  <div className="h-16 flex-shrink-0 px-4 flex items-center justify-between border-b">
                     <div className="flex items-center">
-                        <FolderIcon className="h-6 w-6 text-blue-600" />
+                        <FolderIcon className="h-6 w-6 text-[var(--accent-primary)]" />
                         <span className="ml-2 font-semibold text-lg text-gray-800">Projects</span>
                     </div>
                      <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 -mr-2 text-gray-500 hover:text-gray-800" aria-label="Close menu">
@@ -181,7 +181,7 @@ export const ProjectsWorkspace: React.FC<{
                             }}
                             className={`w-full text-left flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                                 activeProjectId === project.id
-                                    ? 'bg-blue-50 text-blue-700'
+                                    ? 'bg-blue-50 text-[var(--accent-primary)]'
                                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                             }`}
                         >
@@ -210,23 +210,13 @@ export const ProjectsWorkspace: React.FC<{
 
             {/* Main Content */}
             <main className="h-full flex-1 flex flex-col overflow-hidden">
-                <header className="h-16 flex-shrink-0 px-6 flex items-center justify-between border-b bg-white z-10">
+                <header className="h-16 flex-shrink-0 px-6 flex items-center justify-between border-b bg-[var(--bg-primary)] z-10">
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-gray-500 hover:text-gray-800" aria-label="Open projects menu">
                             <MenuIcon className="h-6 w-6" />
                         </button>
                         <div>
                             <h1 className="text-xl font-semibold text-gray-900">{activeProject?.name || 'Dashboard'}</h1>
-                            <div className="flex items-center gap-4 text-xs mt-1">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="font-medium text-gray-500">Paid (wk):</span>
-                                    <span className="font-semibold text-green-600">₱{weeklyTotals.paid.toLocaleString()}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <span className="font-medium text-gray-500">Unpaid (wk):</span>
-                                    <span className="font-semibold text-red-600">₱{weeklyTotals.unpaid.toLocaleString()}</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </header>

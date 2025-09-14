@@ -1,0 +1,139 @@
+/*
+  A Modern CSS Reset
+  https://piccalil.li/blog/a-modern-css-reset/
+*/
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+ul[role='list'],
+ol[role='list'] {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+html:focus-within {
+  scroll-behavior: smooth;
+}
+body {
+  min-height: 100vh;
+  text-rendering: optimizeSpeed;
+  line-height: 1.5;
+}
+a:not([class]) {
+  text-decoration-skip-ink: auto;
+}
+img,
+picture,
+svg {
+  max-width: 100%;
+  display: block;
+}
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+   scroll-behavior: auto;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom Properties */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb; /* gray-50 */
+  --text-primary: #121212;
+  --text-secondary: #5B6470; /* A dark gray from the original design */
+  --accent-primary: #0075e8; /* Darkened blue for AA contrast with white text */
+  --border-primary: #e5e7eb; /* gray-200 */
+}
+
+
+/* Base Styles */
+html, body {
+  overflow-x: hidden;
+}
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  word-break: break-word;
+  hyphens: auto;
+}
+section[id] {
+  scroll-margin-top: 6.5rem; /* 104px */
+}
+
+/* Accessibility Enhancements */
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 0;
+  background: var(--accent-primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  z-index: 9999;
+  transition: top 0.3s ease-in-out;
+  border-bottom-right-radius: 0.5rem;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button,
+a[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+    min-height: 44px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Animation from original file */
+@keyframes blink {
+  50% { opacity: 0; }
+}
+.blinking-colon {
+  animation: blink 1s step-start infinite;
+}
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #f1f5f9; /* Tailwind slate-100 */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #94a3b8; /* Tailwind slate-400 */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b; /* Tailwind slate-500 */
+}

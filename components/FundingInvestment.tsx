@@ -5,8 +5,7 @@ import { UsersGroupIcon } from './icons/UsersGroupIcon';
 import { HandshakeIcon } from './icons/HandshakeIcon';
 import { OfficeBuildingIcon } from './icons/OfficeBuildingIcon';
 import { RefreshIcon } from './icons/RefreshIcon';
-import type { Currency } from '../App';
-import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
+import type { Currency } from '../src/types/index.ts';
 
 const EXCHANGE_RATES: Record<Currency, number> = { PHP: 1, USD: 1 / 58, EUR: 1 / 63 };
 const CURRENCY_SYMBOLS: Record<Currency, string> = { PHP: '₱', USD: '$', EUR: '€' };
@@ -72,87 +71,17 @@ const formatCurrencyRange = (phpMin: number, phpMax: number, currency: Currency)
 
 
 const InvestmentTierCard = ({ icon, title, amount, benefit }: { icon: React.ReactNode, title: string, amount: string, benefit: string }) => (
-    <div className="bg-white p-8 rounded-lg shadow-md hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1 flex flex-col text-center h-full">
-        <div className="text-[#0A84FF] mx-auto mb-4">{icon}</div>
-        <h3 className="font-serif text-lg sm:text-xl font-normal text-[#121212] mb-2">{title}</h3>
-        <p className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4">{amount}</p>
-        <p className="text-gray-600 flex-grow">{benefit}</p>
-        <button className="mt-6 bg-transparent border-2 border-[#0A84FF] text-[#0A84FF] font-semibold py-2 px-6 rounded-lg hover:bg-[#0A84FF] hover:text-white transition-all duration-300 transform hover:scale-105">
-            Inquire
-        </button>
+    <div className="bg-[var(--bg-primary)] p-8 rounded-lg shadow-md hover:shadow-xl border border-gray-100 transition-all duration-300 hover:-translate-y-1 flex flex-col h-full">
+        <div className="flex items-center mb-4">
+            <span className="text-[var(--accent-primary)] mr-4">{icon}</span>
+            <h3 className="font-sans text-xl font-semibold text-gray-800 tracking-tight leading-tight">{title}</h3>
+        </div>
+        <div className="flex-grow">
+            <p className="text-2xl font-semibold text-[var(--text-primary)] tabular-nums">{amount}</p>
+            <p className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed">{benefit}</p>
+        </div>
     </div>
 );
-
-const UseOfFundsChart = () => {
-    const segments = [
-        { color: '#0A84FF', percentage: 60, name: 'Construction & Dev.' },
-        { color: '#34D399', percentage: 20, name: 'Land & Permitting' },
-        { color: '#FBBF24', percentage: 15, name: 'Operational Ramp-up' },
-        { color: '#F87171', percentage: 5, name: 'Contingency' },
-    ];
-    const circumference = 2 * Math.PI * 40;
-    let accumulatedPercentage = 0;
-
-    return (
-        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200/80 h-full flex flex-col">
-            <h3 className="font-serif text-lg sm:text-xl font-normal text-[#121212] mb-4 text-center">Allocation of Capital</h3>
-            <div className="flex-grow flex flex-col md:flex-row items-center justify-center gap-6">
-                <div className="relative w-40 h-40">
-                    <svg className="w-full h-full" viewBox="0 0 100 100">
-                        {segments.map((segment, index) => {
-                            const dashoffset = circumference - (circumference * segment.percentage) / 100;
-                            const rotation = accumulatedPercentage * 3.6;
-                            accumulatedPercentage += segment.percentage;
-                            return (
-                                <circle key={index} cx="50" cy="50" r="40" fill="transparent" stroke={segment.color} strokeWidth="20"
-                                    strokeDasharray={circumference}
-                                    strokeDashoffset={dashoffset}
-                                    transform={`rotate(${rotation - 90} 50 50)`}
-                                />
-                            );
-                        })}
-                    </svg>
-                     <div className="absolute inset-0 flex items-center justify-center text-center">
-                        <span className="text-xs font-semibold text-gray-600">Use of<br/>Funds</span>
-                    </div>
-                </div>
-                <ul className="space-y-2 w-full max-w-xs">
-                    {segments.map(s => (
-                         <li key={s.name} className="flex items-center text-sm">
-                            <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: s.color }}></span>
-                            <span className="font-semibold text-gray-700">{s.name}</span>
-                            <span className="ml-auto text-gray-500 font-medium">{s.percentage}%</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        </div>
-    );
-};
-
-const ExitStrategy = () => {
-    const strategies = [
-        { icon: <HandshakeIcon />, title: "Strategic Acquisition", description: "Sale to a larger hotel operator or real estate developer seeking entry into the Palawan market." },
-        { icon: <OfficeBuildingIcon />, title: "REIT Conversion", description: "Opportunity to bundle stabilized assets into a publicly-traded Real Estate Investment Trust." },
-        { icon: <RefreshIcon />, title: "Share Buyback Program", description: "A structured program to repurchase investor shares using operational profits at a premium." },
-    ];
-    return (
-         <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200/80 h-full flex flex-col">
-            <h3 className="font-serif text-lg sm:text-xl font-normal text-[#121212] mb-4 text-center">Investor Exit Strategy</h3>
-            <ul className="space-y-4">
-                {strategies.map(s => (
-                    <li key={s.title} className="flex items-start">
-                        <span className="text-[#0A84FF] mr-4 mt-1 flex-shrink-0">{s.icon}</span>
-                        <div>
-                            <h4 className="font-semibold text-gray-800">{s.title}</h4>
-                            <p className="text-gray-600 text-sm">{s.description}</p>
-                        </div>
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-}
 
 interface FundingInvestmentProps {
     currency: Currency;
@@ -160,29 +89,94 @@ interface FundingInvestmentProps {
 }
 
 const FundingInvestment: React.FC<FundingInvestmentProps> = ({ currency, weeklyTotals }) => {
-    const tiers = [
-        { icon: <CashIcon className="h-10 w-10"/>, title: "Pilot Investor", amount: formatCurrencyRange(2500000, 5000000, currency), benefit: "Structured as a Convertible Note or SAFE agreement, offering premium terms at the next funding stage." },
-        { icon: <HomeIcon className="h-10 w-10"/>, title: "SIRV Villa Owner", amount: `${formatCurrencyValue(12500000, currency)}+`, benefit: "Acquire a titled eco-villa asset linked to the Special Investor's Resident Visa (SIRV) program." },
-        { icon: <UsersGroupIcon />, title: "Equity Partner", amount: `${formatCurrencyValue(25000000, currency)}+`, benefit: "Direct equity stake in the holding company, including profit sharing, and a potential board seat." },
+    const investmentTiers = [
+        {
+            icon: <UsersGroupIcon />,
+            title: "Community & Angel",
+            amount: formatCurrencyRange(500000, 2500000, currency),
+            benefit: "Profit participation certificate."
+        },
+        {
+            icon: <HandshakeIcon />,
+            title: "SIRV & Partner",
+            amount: `> ${formatCurrencyValue(4350000, currency)}`,
+            benefit: "Visa-linked investment, preferred equity."
+        },
+        {
+            icon: <OfficeBuildingIcon />,
+            title: "Corporate & Institutional",
+            amount: formatCurrencyRange(25000000, 50000000, currency),
+            benefit: "Board representation, custom tranches."
+        },
+    ];
+
+    const useOfFunds = [
+        { item: "Villa Construction & Development", percentage: "50%" },
+        { item: "Land Acquisition & Titling", percentage: "20%" },
+        { item: "Infrastructure & Utilities", percentage: "15%" },
+        { item: "Working Capital & Operations", percentage: "10%" },
+        { item: "Contingency Fund", percentage: "5%" },
     ];
 
     return (
-        <section id="investment" className="bg-gray-50/50 py-20 sm:py-24">
+        <section id="funding" className="bg-[var(--bg-secondary)]/50 py-20 sm:py-24">
             <div className="container mx-auto px-6">
                 <div className="text-center mb-16">
-                    <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Funding & Investment Opportunity</h2>
-                    <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Join us in capitalizing on Palawan's growth. We offer multiple tiers for strategic partnership.</p>
+                    <h2 className="font-sans text-3xl sm:text-4xl font-semibold text-[var(--text-primary)] tracking-tight leading-tight">Funding & Investment Opportunity</h2>
+                    <p className="text-lg text-[var(--text-secondary)] mt-2 max-w-2xl mx-auto leading-relaxed">Seeking strategic partners to accelerate growth and capitalize on a proven, de-risked model.</p>
                 </div>
 
-                {/* Investment Tiers */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20">
-                    {tiers.map(tier => <InvestmentTierCard key={tier.title} {...tier} />)}
-                </div>
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    {/* Left: Investment Tiers */}
+                    <div className="space-y-8">
+                        <div>
+                            <h3 className="font-sans text-2xl font-semibold text-gray-800 mb-6 tracking-tight leading-tight">Investment Tiers</h3>
+                            <div className="grid grid-cols-1 gap-8">
+                                {investmentTiers.map(tier => <InvestmentTierCard key={tier.title} {...tier} />)}
+                            </div>
+                        </div>
+                        
+                        <div className="bg-[var(--bg-primary)] p-6 rounded-lg shadow-md border border-gray-100">
+                             <h3 className="font-sans text-lg font-semibold text-gray-800 mb-4 flex items-center tracking-tight leading-tight">
+                                <RefreshIcon />
+                                <span className="ml-2">Returns & Exit Strategy</span>
+                            </h3>
+                             <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                                Projected 18-20% IRR with exit opportunities via strategic sale or IPO within a 7-10 year horizon. Continuous cash flow from operations provides ongoing investor returns.
+                             </p>
+                        </div>
+                    </div>
 
-                {/* Use of Funds & Exit Strategy */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-                    <UseOfFundsChart />
-                    <ExitStrategy />
+                    {/* Right: Use of Funds */}
+                    <div className="bg-[var(--bg-primary)] p-8 rounded-lg shadow-lg border border-gray-100 flex flex-col">
+                        <h3 className="font-sans text-2xl font-semibold text-gray-800 mb-6 tracking-tight leading-tight">Use of Funds</h3>
+                        <p className="text-sm text-[var(--text-secondary)] mb-8 leading-relaxed">
+                            Capital will be deployed across critical growth areas to scale operations, expand assets, and enhance profitability.
+                        </p>
+                        <div className="space-y-4 flex-grow">
+                            {useOfFunds.map(fund => (
+                                <div key={fund.item}>
+                                    <div className="flex justify-between items-center text-sm mb-1">
+                                        <span className="font-medium text-gray-700">{fund.item}</span>
+                                        <span className="font-semibold text-[var(--accent-primary)] tabular-nums">{fund.percentage}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div className="bg-[var(--accent-primary)] h-2.5 rounded-full" style={{ width: fund.percentage }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                         <div className="mt-8 pt-6 border-t border-dashed">
+                             <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 text-[var(--accent-primary)] pt-1"><CashIcon className="h-6 w-6" /></div>
+                                <div>
+                                    <h4 className="font-semibold text-gray-800">Total Capital Raise (Phase 1)</h4>
+                                    <p className="text-3xl font-semibold text-[var(--text-primary)] mt-1 tabular-nums">{formatCurrencyValue(150000000, currency)}</p>
+                                    <p className="text-xs text-gray-500 leading-relaxed">To fund development through 2026.</p>
+                                </div>
+                            </div>
+                         </div>
+                    </div>
                 </div>
             </div>
         </section>

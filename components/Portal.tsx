@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ProjectsWorkspace } from './ProjectManagement';
 import { KeyIcon } from './icons/KeyIcon';
 import { XIcon } from './icons/XIcon';
-import type { BlogPost } from '../App';
-import type { ProjectData } from '../types/portal';
+import type { BlogPost } from '../src/types/index.ts';
+import type { ProjectData } from '../src/types/portal.ts';
 
 interface PortalProps {
     isOpen: boolean;
@@ -46,7 +46,7 @@ const Portal: React.FC<PortalProps> = ({ isOpen, onClose, posts, setPosts, proje
             aria-modal="true"
             role="dialog"
         >
-            <div className="bg-white rounded-none md:rounded-2xl shadow-2xl w-full h-full flex flex-col relative overflow-hidden">
+            <div className="bg-[var(--bg-primary)] rounded-none md:rounded-2xl shadow-2xl w-full h-full flex flex-col relative overflow-hidden">
                 <button 
                     onClick={onClose} 
                     className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors z-50"
@@ -56,16 +56,16 @@ const Portal: React.FC<PortalProps> = ({ isOpen, onClose, posts, setPosts, proje
                 </button>
 
                 {step === 'role-select' && (
-                     <div className="flex flex-col items-center justify-center h-full w-full bg-gray-50">
+                     <div className="flex flex-col items-center justify-center h-full w-full bg-[var(--bg-secondary)]">
                         <div className="w-full max-w-sm text-center p-4">
-                            <KeyIcon className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-                            <h2 className="font-serif text-2xl sm:text-3xl font-normal text-gray-800 mb-2">Investor & Admin Portal</h2>
-                            <p className="text-gray-600 mb-8">Please select your role to proceed.</p>
+                            <KeyIcon className="h-12 w-12 text-[var(--accent-primary)] mx-auto mb-4" />
+                            <h2 className="font-sans text-2xl sm:text-3xl font-semibold text-gray-800 mb-2 tracking-tight leading-tight">Investor & Admin Portal</h2>
+                            <p className="text-[var(--text-secondary)] mb-8">Please select your role to proceed.</p>
                             <div className="space-y-4">
-                               <button onClick={() => handleSelectRole('admin')} className="w-full bg-slate-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-slate-900 transition-all duration-300 transform hover:scale-105">
+                               <button onClick={() => handleSelectRole('admin')} className="w-full bg-slate-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:bg-slate-900 transition-all duration-300 transform hover:scale-105">
                                     Log in as Admin
                                 </button>
-                               <button onClick={() => handleSelectRole('investor')} className="w-full bg-white border border-gray-300 text-gray-700 font-bold py-3 px-6 rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105">
+                               <button onClick={() => handleSelectRole('investor')} className="w-full bg-[var(--bg-primary)] border border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105">
                                     Log in as Investor
                                 </button>
                             </div>

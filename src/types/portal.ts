@@ -66,3 +66,7 @@ export interface ProjectData {
   labor: Labor[];
   materials: Material[];
 }
+
+// Added for sorting in ProjectItemViews
+export type SortableKeys = keyof Task | keyof Labor | keyof Material;
+export type SortConfig = { key: SortableKeys; direction: 'ascending' | 'descending' };

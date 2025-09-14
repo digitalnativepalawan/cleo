@@ -4,8 +4,7 @@ import { CashIcon } from './icons/CashIcon';
 import { HardHatIcon } from './icons/HardHatIcon';
 import { HomeIcon } from './icons/HomeIcon';
 import { TrendingUpIcon } from './icons/TrendingUpIcon';
-import type { Currency } from '../App';
-import { WeeklyTotalsDisplay } from './icons/CheckCircleIcon';
+import type { Currency } from '../src/types/index.ts';
 
 const EXCHANGE_RATES: Record<Currency, number> = { PHP: 1, USD: 1 / 58, EUR: 1 / 63 };
 const CURRENCY_SYMBOLS: Record<Currency, string> = { PHP: '₱', USD: '$', EUR: '€' };
@@ -69,7 +68,7 @@ const ActionPlan: React.FC<ActionPlanProps> = ({ currency, weeklyTotals }) => {
         {
             icon: <CashIcon />,
             period: "Q1-Q2 2025",
-            title: `Pilot Raise (${formatCurrencyRange(25000000, 37500000, currency)})`,
+            title: <span className="tabular-nums">Pilot Raise ({formatCurrencyRange(25000000, 37500000, currency)})</span>,
             description: "Secure initial funding for pilot phase."
         },
         {
@@ -96,12 +95,12 @@ const ActionPlan: React.FC<ActionPlanProps> = ({ currency, weeklyTotals }) => {
     ]
 
     return (
-        <section id="action-plan" className="relative bg-white py-20 sm:py-24 overflow-hidden">
+        <section id="action-plan" className="relative bg-[var(--bg-primary)] py-20 sm:py-24 overflow-hidden">
             <WavePattern />
             <div className="container mx-auto px-6 relative z-10">
                 <div className="text-center mb-16">
-                    <h2 className="font-serif text-3xl sm:text-4xl font-normal text-[#121212]">Action Plan & Timeline</h2>
-                    <p className="text-lg text-gray-600 mt-2 max-w-2xl mx-auto">Our strategic roadmap from inception to full-scale operation.</p>
+                    <h2 className="font-sans text-3xl sm:text-4xl font-semibold text-[var(--text-primary)] tracking-tight leading-tight">Action Plan & Timeline</h2>
+                    <p className="text-lg text-[var(--text-secondary)] mt-2 max-w-2xl mx-auto leading-relaxed">Our strategic roadmap from inception to full-scale operation.</p>
                 </div>
 
                 {/* Desktop Horizontal Timeline */}
@@ -110,18 +109,18 @@ const ActionPlan: React.FC<ActionPlanProps> = ({ currency, weeklyTotals }) => {
                         <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-200"></div>
                         <div className="absolute top-5 left-0 w-full flex justify-between">
                             {horizontalMilestones.map((_, index) => (
-                                <div key={index} className="w-5 h-5 bg-white border-2 border-[#0A84FF] rounded-full"></div>
+                                <div key={index} className="w-5 h-5 bg-[var(--bg-primary)] border-2 border-[var(--accent-primary)] rounded-full"></div>
                             ))}
                         </div>
                     </div>
                     <div className="flex justify-between max-w-5xl mx-auto">
                         {horizontalMilestones.map((milestone, index) => (
                             <div key={index} className="text-center w-1/5 px-2">
-                                <div className="text-[#0A84FF] mx-auto mb-2 w-10 h-10 flex items-center justify-center">
+                                <div className="text-[var(--accent-primary)] mx-auto mb-2 w-10 h-10 flex items-center justify-center">
                                     {React.cloneElement(milestone.icon, { className: "h-8 w-8" })}
                                 </div>
-                                <p className="font-serif font-normal text-gray-800 text-sm leading-tight">{milestone.title}</p>
-                                <p className="text-xs text-[#0A84FF] font-semibold mt-1">{milestone.period}</p>
+                                <p className="font-sans font-semibold text-gray-800 text-sm leading-tight">{milestone.title}</p>
+                                <p className="text-xs text-[var(--accent-primary)] font-medium mt-1">{milestone.period}</p>
                             </div>
                         ))}
                     </div>
@@ -130,16 +129,16 @@ const ActionPlan: React.FC<ActionPlanProps> = ({ currency, weeklyTotals }) => {
                 {/* Mobile Vertical Timeline */}
                 <div className="md:hidden max-w-md mx-auto">
                     <div className="relative wrap overflow-hidden h-full">
-                        <div className="absolute h-full border border-dashed border-opacity-20 border-[#0A84FF]" style={{ left: '1.5rem' }}></div>
+                        <div className="absolute h-full border border-dashed border-opacity-20 border-[var(--accent-primary)]" style={{ left: '1.5rem' }}></div>
                         {milestones.map((milestone, index) => (
                              <div key={index} className="mb-8 flex items-center w-full">
-                                <div className="z-20 flex-shrink-0 flex items-center justify-center bg-[#0A84FF] shadow-xl w-12 h-12 rounded-full text-white">
+                                <div className="z-20 flex-shrink-0 flex items-center justify-center bg-[var(--accent-primary)] shadow-xl w-12 h-12 rounded-full text-white">
                                     {React.cloneElement(milestone.icon, { className: "h-6 w-6" })}
                                 </div>
-                                <div className="bg-white rounded-lg shadow-md w-full ml-4 p-4 border border-gray-100">
-                                    <p className="mb-1 text-sm font-bold text-[#0A84FF]">{milestone.period}</p>
-                                    <h3 className="font-serif font-normal text-gray-800 text-base">{milestone.title}</h3>
-                                    {milestone.description && <p className="text-xs leading-snug tracking-wide text-gray-600 mt-1">{milestone.description}</p>}
+                                <div className="bg-[var(--bg-primary)] rounded-lg shadow-md w-full ml-4 p-4 border border-gray-100">
+                                    <p className="mb-1 text-sm font-medium text-[var(--accent-primary)]">{milestone.period}</p>
+                                    <h3 className="font-sans font-semibold text-gray-800 text-base">{milestone.title}</h3>
+                                    {milestone.description && <p className="text-xs leading-relaxed tracking-wide text-[var(--text-secondary)] mt-1">{milestone.description}</p>}
                                 </div>
                             </div>
                         ))}

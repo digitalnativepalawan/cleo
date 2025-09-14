@@ -1,13 +1,13 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-// Fix: Corrected import path for the Currency type.
-import type { Currency } from '../src/types/index.ts';
-import { ChevronDownIcon } from './icons/ChevronDownIcon';
-import { MenuIcon } from './icons/MenuIcon';
-import { XIcon } from './icons/XIcon';
-import SocialLinks from './SocialLinksBar';
-import { KeyIcon } from './icons/KeyIcon';
-import { NewspaperIcon } from './icons/NewspaperIcon';
-import { GitHubIcon } from './icons/GitHubIcon';
+import type { Currency } from '../types/index.ts';
+import { ChevronDownIcon } from '../../components/icons/ChevronDownIcon.tsx';
+import { MenuIcon } from '../../components/icons/MenuIcon.tsx';
+import { XIcon } from '../../components/icons/XIcon.tsx';
+import SocialLinks from '../../components/SocialLinksBar.tsx';
+import { KeyIcon } from '../../components/icons/KeyIcon.tsx';
+import { NewspaperIcon } from '../../components/icons/NewspaperIcon.tsx';
+import { GitHubIcon } from '../../components/icons/GitHubIcon.tsx';
 
 const currencies: Currency[] = ['PHP', 'USD', 'EUR'];
 
@@ -29,30 +29,9 @@ const MobileNav: React.FC<{
         return () => document.removeEventListener('keydown', handleEscape);
     }, [onClose]);
 
-    const mobileNavLinks = [
-        {
-            name: 'Blog',
-            icon: <NewspaperIcon className="h-6 w-6 text-gray-500" />,
-            action: () => { onBlogClick(); onClose(); },
-            isExternal: false,
-        },
-        {
-            name: 'Investor Portal',
-            icon: <KeyIcon className="h-6 w-6 text-gray-500" />,
-            action: () => { onPortalClick(); onClose(); },
-            isExternal: false,
-        },
-        {
-            name: 'GitHub',
-            icon: <GitHubIcon className="h-6 w-6 text-gray-500" />,
-            href: 'https://github.com/digitalnativepalawan/cleo',
-            isExternal: true,
-        }
-    ];
-
     return (
         <div 
-            className={`fixed inset-0 z-50 bg-white/80 backdrop-blur-sm transition-opacity duration-300 md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            className={`fixed inset-0 z-[60] bg-white/80 backdrop-blur-sm transition-opacity duration-300 md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             onClick={onClose}
             aria-modal="true"
             role="dialog"
@@ -68,30 +47,36 @@ const MobileNav: React.FC<{
                     </div>
                     <nav className="flex-grow p-4">
                         <ul className="space-y-2">
-                             {mobileNavLinks.map((item) => (
-                                <li key={item.name}>
-                                    {item.isExternal && item.href ? (
-                                        <a
-                                            href={item.href}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={onClose}
-                                            className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
-                                        >
-                                            {item.icon}
-                                            <span className="ml-3">{item.name}</span>
-                                        </a>
-                                    ) : (
-                                        <button
-                                            onClick={item.action}
-                                            className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
-                                        >
-                                            {item.icon}
-                                            <span className="ml-3">{item.name}</span>
-                                        </button>
-                                    )}
-                                </li>
-                            ))}
+                             <li>
+                                <button 
+                                    onClick={() => { onBlogClick(); onClose(); }} 
+                                    className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
+                                >
+                                    <NewspaperIcon className="h-6 w-6 text-gray-500" />
+                                    <span className="ml-3">Blog</span>
+                                </button>
+                            </li>
+                             <li>
+                                <button 
+                                    onClick={() => { onPortalClick(); onClose(); }} 
+                                    className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
+                                >
+                                    <KeyIcon className="h-6 w-6 text-gray-500" />
+                                    <span className="ml-3">Investor Portal</span>
+                                </button>
+                            </li>
+                            <li>
+                                <a 
+                                    href="https://github.com/digitalnativepalawan/palawan-tourism-ecosystem"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={onClose}
+                                    className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
+                                >
+                                    <GitHubIcon className="h-6 w-6 text-gray-500" />
+                                    <span className="ml-3">GitHub</span>
+                                </a>
+                            </li>
                         </ul>
                     </nav>
                     <div className="p-4 border-t">
@@ -121,8 +106,9 @@ const Header: React.FC<{
     selectedCurrency: Currency, 
     setSelectedCurrency: (currency: Currency) => void,
     onPortalButtonClick: () => void,
-    onBlogButtonClick: () => void
-}> = ({ selectedCurrency, setSelectedCurrency, onPortalButtonClick, onBlogButtonClick }) => {
+    onBlogButtonClick: () => void,
+    onHomeButtonClick: () => void,
+}> = ({ selectedCurrency, setSelectedCurrency, onPortalButtonClick, onBlogButtonClick, onHomeButtonClick }) => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -154,7 +140,6 @@ const Header: React.FC<{
         return () => clearInterval(timerId);
     }, []);
 
-    // Set timezone to Manila (PHT, UTC+8)
     const manilaTimeOptions: Intl.DateTimeFormatOptions = {
         timeZone: 'Asia/Manila',
         hour: '2-digit',
@@ -171,39 +156,42 @@ const Header: React.FC<{
     };
 
     const formattedDate = new Intl.DateTimeFormat('en-US', manilaDateOptions).format(currentDateTime);
-
     const timeString = new Intl.DateTimeFormat('en-US', manilaTimeOptions).format(currentDateTime);
-    const [timePart, ampmPart] = timeString.replace(/\u202f/g, ' ').split(' '); // Handle potential narrow no-break space
+    const [timePart, ampmPart] = timeString.replace(/\u202f/g, ' ').split(' ');
     const [displayHours, displayMinutes] = timePart.split(':');
     const ampm = ampmPart;
 
     return (
         <>
-            <header role="banner" className={`sticky top-0 z-40 bg-white/95 backdrop-blur-lg transition-all duration-300 ${isScrolled ? 'shadow-lg h-20 md:h-24' : 'h-24 md:h-28 border-b border-gray-200'}`}>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full">
+            {/* Top Fixed Clock Bar */}
+            <div className="fixed top-0 left-0 right-0 h-10 bg-gray-50/95 backdrop-blur-sm z-50 flex items-center justify-center border-b border-gray-200/80">
+                <div className="flex items-center space-x-4">
+                    <div className="font-sans tabular-nums tracking-tight text-lg font-semibold text-gray-900 flex items-baseline" aria-live="polite">
+                        <span>{displayHours}</span>
+                        <span className="blinking-colon mx-0.5 text-base relative top-[-1px]">:</span>
+                        <span>{displayMinutes}</span>
+                        <span className="text-xs ml-1.5 font-sans font-medium">{ampm}</span>
+                    </div>
+                    <div className="hidden sm:block font-sans text-[11px] font-medium text-gray-600" aria-label={`Date is ${formattedDate}`}>
+                        {formattedDate}
+                    </div>
+                </div>
+            </div>
+            
+            <header role="banner" className={`sticky z-40 bg-white/95 backdrop-blur-lg transition-shadow duration-300 ${isScrolled ? 'shadow-lg' : 'border-b border-gray-200'}`} style={{ top: '2.5rem' }}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20">
                     <div className="flex items-center justify-between h-full">
-                        {/* Left Spacer */}
-                        <div className="flex-1">
-                            {/* Can be used for a logo in the future */}
-                        </div>
-
-                        {/* Centered Digital Clock */}
-                        <div className="flex-shrink-0 flex flex-col items-center">
-                            <div className="font-sans tabular-nums tracking-tight text-3xl md:text-4xl font-semibold text-gray-900 flex items-baseline" aria-live="polite">
-                                <span>{displayHours}</span>
-                                <span className="blinking-colon mx-1 text-2xl md:text-3xl relative top-[-2px]">:</span>
-                                <span>{displayMinutes}</span>
-                                <span className="text-base md:text-xl ml-2 font-sans font-medium">{ampm}</span>
-                            </div>
-                            <div className="font-sans text-xs md:text-sm font-medium text-gray-600 mt-1" aria-label={`Date is ${formattedDate}`}>
-                                {formattedDate}
-                            </div>
+                        {/* Left: Brand Name */}
+                        <div className="flex-shrink-0">
+                            <button onClick={onHomeButtonClick} className="text-lg font-semibold text-gray-800 hover:text-gray-900 transition-colors">
+                               Cleopatra × Binga
+                            </button>
                         </div>
 
                         {/* Right Controls */}
-                        <div className="flex-1 flex justify-end items-center space-x-2 sm:space-x-4">
-                            {/* Desktop Blog Button */}
-                            <div className="hidden md:block">
+                        <div className="flex justify-end items-center space-x-2 sm:space-x-4">
+                            {/* Desktop Controls */}
+                            <div className="hidden md:flex items-center space-x-2 sm:space-x-4">
                                 <button 
                                     onClick={onBlogButtonClick} 
                                     aria-label="Blog"
@@ -212,10 +200,6 @@ const Header: React.FC<{
                                     <NewspaperIcon className="h-4 w-4 text-gray-500" />
                                     <span>Blog</span>
                                 </button>
-                            </div>
-
-                            {/* Desktop Portal Button */}
-                            <div className="hidden md:block">
                                 <button 
                                     onClick={onPortalButtonClick} 
                                     aria-label="Investor Portal"
@@ -224,12 +208,8 @@ const Header: React.FC<{
                                     <KeyIcon className="h-4 w-4 text-gray-500" />
                                     <span>Portal</span>
                                 </button>
-                            </div>
-
-                            {/* Desktop GitHub Button */}
-                             <div className="hidden md:block">
                                 <a
-                                    href="https://github.com/digitalnativepalawan/cleo"
+                                    href="https://github.com/digitalnativepalawan/palawan-tourism-ecosystem"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     aria-label="View source on GitHub"
@@ -237,24 +217,22 @@ const Header: React.FC<{
                                 >
                                     <GitHubIcon className="h-4 w-4 text-gray-500" />
                                 </a>
-                            </div>
-
-                            {/* Desktop Currency Dropdown */}
-                            <div className="hidden md:block" ref={dropdownRef}>
-                                <div className="relative">
-                                     <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} aria-haspopup="true" aria-expanded={isDropdownOpen} className="flex items-center space-x-1 border border-gray-300 hover:bg-gray-100 px-3 py-1.5 text-base font-medium text-gray-700 rounded-full transition-all duration-200">
-                                        <span>{selectedCurrency}</span>
-                                        <ChevronDownIcon className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-                                    {isDropdownOpen && (
-                                        <div className="absolute top-full right-0 mt-2 w-28 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-10" role="menu">
-                                            {currencies.map(currency => (
-                                                <button key={currency} onClick={() => { setSelectedCurrency(currency); setIsDropdownOpen(false); }} className={`w-full text-left px-4 py-2 text-sm transition-colors duration-200 ${selectedCurrency === currency ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`} role="menuitem">
-                                                    {currency}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                <div ref={dropdownRef}>
+                                    <div className="relative">
+                                         <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} aria-haspopup="true" aria-expanded={isDropdownOpen} className="flex items-center space-x-1 border border-gray-300 hover:bg-gray-100 px-3 py-1.5 text-base font-medium text-gray-700 rounded-full transition-all duration-200">
+                                            <span>{selectedCurrency}</span>
+                                            <ChevronDownIcon className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        {isDropdownOpen && (
+                                            <div className="absolute top-full right-0 mt-2 w-28 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-10" role="menu">
+                                                {currencies.map(currency => (
+                                                    <button key={currency} onClick={() => { setSelectedCurrency(currency); setIsDropdownOpen(false); }} className={`w-full text-left px-4 py-2 text-sm transition-colors duration-200 ${selectedCurrency === currency ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`} role="menuitem">
+                                                        {currency}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             

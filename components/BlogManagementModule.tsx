@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { UserRole } from './Portal';
 import { PlusIcon, PencilIcon, TrashIcon, XIcon } from './portal/PortalIcons';
-import type { BlogPost } from '../App';
+import type { BlogPost } from '../src/types/index.ts';
 
 const BlogManagementModal: React.FC<{
     post: Partial<BlogPost>;
@@ -73,8 +73,8 @@ const BlogManagementModal: React.FC<{
                     </div>
                 </form>
                 <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
-                    <button type="button" onClick={onClose} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
-                    <button type="submit" onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">Save Post</button>
+                    <button type="button" onClick={onClose} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 text-base font-semibold rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
+                    <button type="submit" onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 text-base font-semibold rounded-md hover:bg-blue-700 transition-colors">Save Post</button>
                 </div>
             </div>
         </div>
@@ -128,13 +128,13 @@ const BlogManagementModule: React.FC<BlogManagementModuleProps> = ({ role, showT
         <div className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-800">Blog Management</h2>
+                    <h2 className="text-xl font-semibold text-gray-800">Blog Management</h2>
                     <p className="text-sm text-gray-500 mt-1">Create, edit, and manage all blog posts.</p>
                 </div>
                 <button 
                     onClick={handleAddNew} 
                     disabled={role !== 'admin'}
-                    className="flex items-center gap-2 text-sm bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 text-base bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                     <PlusIcon /><span>Add New Post</span>
                 </button>
@@ -143,7 +143,7 @@ const BlogManagementModule: React.FC<BlogManagementModuleProps> = ({ role, showT
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-gray-600">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 font-medium">
                             <tr>
                                 <th scope="col" className="px-6 py-3">Title</th>
                                 <th scope="col" className="px-6 py-3">Author</th>
