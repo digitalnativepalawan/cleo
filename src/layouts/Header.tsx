@@ -232,9 +232,10 @@ const Header: React.FC<{
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     aria-label="View source on GitHub"
-                                    className="flex items-center justify-center w-9 h-9 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-full transition-all duration-200"
+                                    className="flex items-center space-x-2 border border-gray-300 hover:bg-gray-100 px-3 py-1.5 text-base font-medium text-gray-700 rounded-full transition-all duration-200"
                                 >
                                     <GitHubIcon className="h-4 w-4 text-gray-500" />
+                                    <span>GitHub</span>
                                 </a>
                                 <div ref={dropdownRef}>
                                     <div className="relative">

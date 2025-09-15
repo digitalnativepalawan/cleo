@@ -33,7 +33,7 @@ const BlogManagementModal: React.FC<{
                     <h3 className="text-lg font-semibold text-gray-900">{post.id ? 'Edit' : 'Create'} Blog Post</h3>
                     <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100"><XIcon /></button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+                <form id="blog-post-form" onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
                     <div>
                         <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                         <input type="text" name="title" id="title" value={formData.title || ''} onChange={handleChange} className={inputClass} required />
@@ -64,8 +64,11 @@ const BlogManagementModal: React.FC<{
                         <textarea name="excerpt" id="excerpt" rows={3} value={formData.excerpt || ''} onChange={handleChange} className={inputClass}></textarea>
                     </div>
                     <div>
-                        <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">Content</label>
-                        <textarea name="content" id="content" rows={20} value={formData.content || ''} onChange={handleChange} className={inputClass}></textarea>
+                        <div className="flex justify-between">
+                            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                            <span className="text-sm text-gray-500 tabular-nums">{(formData.content || '').length} / 7500</span>
+                        </div>
+                        <textarea name="content" id="content" rows={15} maxLength={7500} value={formData.content || ''} onChange={handleChange} className={inputClass}></textarea>
                     </div>
                      <div>
                         <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
@@ -74,7 +77,7 @@ const BlogManagementModal: React.FC<{
                 </form>
                 <div className="flex justify-end gap-3 p-4 border-t bg-gray-50 rounded-b-lg">
                     <button type="button" onClick={onClose} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 text-base font-semibold rounded-md hover:bg-gray-50 transition-colors">Cancel</button>
-                    <button type="submit" onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 text-base font-semibold rounded-md hover:bg-blue-700 transition-colors">Save Post</button>
+                    <button type="submit" form="blog-post-form" className="bg-blue-600 text-white px-4 py-2 text-base font-semibold rounded-md hover:bg-blue-700 transition-colors">Save Post</button>
                 </div>
             </div>
         </div>
@@ -94,7 +97,7 @@ const BlogManagementModule: React.FC<BlogManagementModuleProps> = ({ role, showT
 
     const handleAddNew = () => {
         if (role !== 'admin') return;
-        setEditingPost({ status: 'Draft', tags: [] });
+        setEditingPost({ status: 'Draft', tags: [], publishDate: new Date().toISOString().split('T')[0] });
         setIsModalOpen(true);
     };
 
@@ -118,15 +121,17 @@ const BlogManagementModule: React.FC<BlogManagementModuleProps> = ({ role, showT
             showToast('Post updated successfully.');
         } else {
             const newPost = { ...postToSave, id: `post-${Date.now()}` } as BlogPost;
-            setPosts(prev => [...prev, newPost]);
+            setPosts(prev => [newPost, ...prev]);
             showToast('Post created successfully.');
         }
         setIsModalOpen(false);
     };
+    
+    const sortedPosts = [...posts].sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
 
     return (
-        <div className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
+        <div className="p-0 sm:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3 p-4 sm:p-0">
                 <div>
                     <h2 className="text-xl font-semibold text-gray-800">Blog Management</h2>
                     <p className="text-sm text-gray-500 mt-1">Create, edit, and manage all blog posts.</p>
@@ -141,7 +146,8 @@ const BlogManagementModule: React.FC<BlogManagementModuleProps> = ({ role, showT
             </div>
 
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Desktop Table */}
+                <div className="overflow-x-auto hidden md:block">
                     <table className="w-full text-sm text-left text-gray-600">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 font-medium">
                             <tr>
@@ -153,7 +159,7 @@ const BlogManagementModule: React.FC<BlogManagementModuleProps> = ({ role, showT
                             </tr>
                         </thead>
                         <tbody>
-                            {posts.length > 0 ? posts.map(post => (
+                            {sortedPosts.length > 0 ? sortedPosts.map(post => (
                                 <tr key={post.id} className="bg-white border-b hover:bg-gray-50">
                                     <td className="px-6 py-4 font-medium text-gray-900">{post.title}</td>
                                     <td className="px-6 py-4">{post.author}</td>
@@ -182,6 +188,43 @@ const BlogManagementModule: React.FC<BlogManagementModuleProps> = ({ role, showT
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden">
+                    {sortedPosts.length > 0 ? (
+                        <ul className="divide-y divide-gray-200">
+                            {sortedPosts.map(post => (
+                                <li key={post.id} className="p-4">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-base font-semibold text-gray-900">{post.title}</p>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                {post.author} &middot; {post.publishDate}
+                                            </p>
+                                        </div>
+                                        {role === 'admin' && (
+                                            <div className="flex items-center flex-shrink-0 -mr-2">
+                                                <button onClick={() => handleEdit(post)} className="p-2 text-gray-500 hover:text-blue-600"><PencilIcon /></button>
+                                                <button onClick={() => handleDelete(post.id)} className="p-2 text-gray-500 hover:text-red-600"><TrashIcon /></button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="mt-3">
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${post.status === 'Published' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                            {post.status}
+                                        </span>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div className="text-center py-16 px-4 text-gray-500">
+                            <p>No blog posts yet.</p>
+                            {role === 'admin' && <p className="mt-1">Click "Add New Post" to get started.</p>}
+                        </div>
+                    )}
+                </div>
+
             </div>
 
             {isModalOpen && editingPost && (
