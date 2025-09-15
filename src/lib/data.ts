@@ -139,7 +139,12 @@ export const INITIAL_PROJECTS = [
     { id: 'project-blog', name: 'Blog Management' },
 ];
 
-// --- WEEKLY TOTALS CALCULATION ---
+// --- FINANCIAL CALCULATIONS ---
+
+interface FinancialTotals {
+  paid: number;
+  unpaid: number;
+}
 
 const getWeekRange = (date: Date) => {
     const day = date.getDay(); // 0 (Sun) - 6 (Sat)
@@ -155,12 +160,7 @@ const getWeekRange = (date: Date) => {
     return { start: monday, end: sunday };
 };
 
-interface WeeklyTotals {
-  paid: number;
-  unpaid: number;
-}
-
-export const calculateWeeklyTotals = (projectData: ProjectData): WeeklyTotals => {
+export const calculateWeeklyTotals = (projectData: ProjectData): FinancialTotals => {
     if (!projectData) return { paid: 0, unpaid: 0 };
     const { start, end } = getWeekRange(new Date());
     let paid = 0;
@@ -193,12 +193,43 @@ export const calculateWeeklyTotals = (projectData: ProjectData): WeeklyTotals =>
     return { paid, unpaid };
 };
 
-export const calculateAllProjectsWeeklyTotals = (projectsData: Record<string, ProjectData>): WeeklyTotals => {
+export const calculateAllProjectsWeeklyTotals = (projectsData: Record<string, ProjectData>): FinancialTotals => {
     let totalPaid = 0;
     let totalUnpaid = 0;
     for (const projectId in projectsData) {
-        if (projectsData[projectId]) {
+        if (projectId !== 'project-blog' && projectsData[projectId]) {
             const { paid, unpaid } = calculateWeeklyTotals(projectsData[projectId]);
+            totalPaid += paid;
+            totalUnpaid += unpaid;
+        }
+    }
+    return { paid: totalPaid, unpaid: totalUnpaid };
+};
+
+export const calculateLifetimeTotals = (projectData: ProjectData): FinancialTotals => {
+    if (!projectData) return { paid: 0, unpaid: 0 };
+    let paid = 0;
+    let unpaid = 0;
+
+    const items = [...(projectData.labor || []), ...(projectData.materials || [])];
+
+    for (const item of items) {
+        const cost = 'cost' in item ? item.cost : ('totalCost' in item ? item.totalCost : 0);
+        if (item.paid) {
+            paid += cost;
+        } else {
+            unpaid += cost;
+        }
+    }
+    return { paid, unpaid };
+};
+
+export const calculateAllProjectsLifetimeTotals = (projectsData: Record<string, ProjectData>): FinancialTotals => {
+    let totalPaid = 0;
+    let totalUnpaid = 0;
+    for (const projectId in projectsData) {
+        if (projectId !== 'project-blog' && projectsData[projectId]) {
+            const { paid, unpaid } = calculateLifetimeTotals(projectsData[projectId]);
             totalPaid += paid;
             totalUnpaid += unpaid;
         }

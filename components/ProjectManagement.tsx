@@ -3,10 +3,16 @@ import type { UserRole } from './Portal';
 
 import {
     FolderIcon, UserCircleIcon, LogoutIcon, ChevronRightIcon,
-    DownloadIcon, ArchiveIcon, XIcon, MenuIcon
+    DownloadIcon, ArchiveIcon, XIcon, MenuIcon, CloudDownloadIcon
 } from './portal/PortalIcons';
 
-import { INITIAL_PROJECTS, calculateWeeklyTotals, calculateAllProjectsWeeklyTotals } from '../src/lib/data.ts';
+import { 
+    INITIAL_PROJECTS, 
+    calculateWeeklyTotals, 
+    calculateAllProjectsWeeklyTotals,
+    calculateLifetimeTotals,
+    calculateAllProjectsLifetimeTotals
+} from '../src/lib/data.ts';
 import MainDashboard from './portal/modules/MainDashboard';
 import ProjectModule from './portal/modules/VincenteHouseModule'; // Using VincenteHouseModule as the unified module
 import BlogManagementModule from './BlogManagementModule';
@@ -31,13 +37,77 @@ const StatusPill: React.FC<{ status: string }> = ({ status }) => {
     return <Pill text={status} colorClass={colorMap[status] || 'bg-gray-100 text-gray-800'} />;
 };
 
-const SidePanel: React.FC<{
+interface SidePanelProps {
     project: { id: string; name: string };
     role: UserRole;
-}> = ({ project, role }) => {
+    projectData: ProjectData | null;
+}
+
+const SidePanel: React.FC<SidePanelProps> = ({ project, role, projectData }) => {
     const totalCost = 1_250_000;
     const progress = 65;
     const teamMembers = ['David', 'John', 'JR', 'Leo'];
+    
+    // --- CSV Export Logic ---
+    const convertToCSV = (data: any[]) => {
+        if (!data || data.length === 0) return '';
+        const headers = Object.keys(data[0]);
+        const csvRows = [headers.join(',')];
+        for (const row of data) {
+            const values = headers.map(header => {
+                const rawValue = row[header];
+                let cell = rawValue === null || rawValue === undefined ? '' : rawValue;
+
+                if (typeof cell === 'object') {
+                    cell = JSON.stringify(cell);
+                }
+                
+                cell = String(cell);
+                
+                cell = cell.replace(/"/g, '""');
+                if (cell.search(/("|,|\n)/g) >= 0) {
+                    cell = `"${cell}"`;
+                }
+                return cell;
+            });
+            csvRows.push(values.join(','));
+        }
+        return csvRows.join('\n');
+    };
+
+    const downloadCSV = (csvContent: string, fileName: string) => {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleExportData = () => {
+        if (!projectData) return;
+
+        const { tasks, labor, materials } = projectData;
+        const projectName = project.id.replace('project-', '');
+
+        if (tasks.length > 0) {
+            const tasksCSV = convertToCSV(tasks);
+            downloadCSV(tasksCSV, `${projectName}-tasks.csv`);
+        }
+        if (labor.length > 0) {
+            const laborCSV = convertToCSV(labor);
+            downloadCSV(laborCSV, `${projectName}-labor.csv`);
+        }
+        if (materials.length > 0) {
+            const materialsCSV = convertToCSV(materials);
+            downloadCSV(materialsCSV, `${projectName}-materials.csv`);
+        }
+    };
+
 
     return (
         <div className="space-y-6">
@@ -77,9 +147,16 @@ const SidePanel: React.FC<{
                 <div className="bg-[var(--bg-primary)] p-5 rounded-xl border border-[var(--border-primary)]">
                     <h3 className="font-semibold text-gray-800 mb-4">Admin Actions</h3>
                     <div className="space-y-2">
-                         <button className="w-full text-left flex items-center gap-2 text-sm text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                         <button onClick={handleExportData} className="w-full text-left flex items-center gap-2 text-sm text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors">
                             <DownloadIcon className="h-4 w-4"/> Export Project Data
                         </button>
+                        <a 
+                            href="https://drive.google.com/drive/folders/1r2Ip6-Sna_F1IIRmaakiWC1Pcru4z_RM?usp=sharing"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full text-left flex items-center gap-2 text-sm text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                            <CloudDownloadIcon className="h-4 w-4"/> Download Project CVs
+                        </a>
                          <button className="w-full text-left flex items-center gap-2 text-sm text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors">
                             <ArchiveIcon className="h-4 w-4"/> Archive Project
                         </button>
@@ -107,15 +184,17 @@ export const ProjectsWorkspace: React.FC<{
     const activeProject = useMemo(() => INITIAL_PROJECTS.find(p => p.id === activeProjectId), [activeProjectId]);
     const activeProjectData = activeProjectId ? projectsData[activeProjectId] : null;
 
-    const weeklyTotals = useMemo(() => {
+    const lifetimeTotals = useMemo(() => {
         if (!activeProjectId) { // Dashboard view
-            return calculateAllProjectsWeeklyTotals(projectsData);
+            return calculateAllProjectsLifetimeTotals(projectsData);
         }
-        if (projectsData[activeProjectId]) {
-            return calculateWeeklyTotals(projectsData[activeProjectId]);
+        if (projectsData[activeProjectId] && activeProjectId !== 'project-blog') {
+            return calculateLifetimeTotals(projectsData[activeProjectId]);
         }
         return { paid: 0, unpaid: 0 };
     }, [activeProjectId, projectsData]);
+
+    const isFinancialView = !activeProjectId || (activeProject && activeProject.id !== 'project-blog');
 
     const showToast = (msg: string) => {
         // In a real app, this would trigger a toast notification system.
@@ -153,14 +232,40 @@ export const ProjectsWorkspace: React.FC<{
     return (
         <div className="h-full bg-[var(--bg-secondary)] flex flex-col">
             {/* Header */}
-            <header className="h-16 flex-shrink-0 px-6 flex items-center justify-between border-b bg-[var(--bg-primary)] z-20">
-                <div className="flex items-center gap-4">
+            <header className="h-16 flex-shrink-0 px-4 sm:px-6 grid grid-cols-3 items-center border-b bg-[var(--bg-primary)] z-20 gap-4">
+                {/* Left: Project Title */}
+                <div className="flex items-center gap-2 sm:gap-4 justify-start">
                     <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-gray-500 hover:text-gray-800" aria-label="Open projects menu">
                         <MenuIcon className="h-6 w-6" />
                     </button>
-                    <div>
-                        <h1 className="text-xl font-semibold text-gray-900">{activeProject?.name || 'Dashboard'}</h1>
-                    </div>
+                    <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate" title={activeProject?.name || 'Dashboard'}>
+                        {activeProject?.name || 'Dashboard'}
+                    </h1>
+                </div>
+
+                {/* Center: Financial Totals */}
+                <div className="flex items-center justify-center gap-4 sm:gap-6 text-center">
+                    {isFinancialView && (
+                        <>
+                            <div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wider">Paid</div>
+                                <div className="text-base sm:text-lg font-semibold text-green-600 tabular-nums">
+                                    ₱{lifetimeTotals.paid.toLocaleString()}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wider">Unpaid</div>
+                                <div className="text-base sm:text-lg font-semibold text-red-600 tabular-nums">
+                                    ₱{lifetimeTotals.unpaid.toLocaleString()}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Right: Spacer to balance */}
+                <div className="flex justify-end">
+                    {/* This column ensures the center column is truly centered. */}
                 </div>
             </header>
 
@@ -231,7 +336,7 @@ export const ProjectsWorkspace: React.FC<{
                                 {renderModule()}
                             </div>
                             <aside className="hidden lg:block lg:col-span-1 lg:sticky lg:top-6">
-                                <SidePanel project={activeProject} role={role} />
+                                <SidePanel project={activeProject} role={role} projectData={activeProjectData} />
                             </aside>
                         </div>
                     ) : (
