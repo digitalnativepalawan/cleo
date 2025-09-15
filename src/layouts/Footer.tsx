@@ -59,7 +59,7 @@ const Footer: React.FC = () => {
                     {/* Brand & blurb */}
                     <div className="lg:col-span-2">
                         <div className="flex items-center gap-2">
-                            <span className="text-[var(--text-primary)] font-semibold text-lg">Cleopatra SIRV × Binga Beach Brothers</span>
+                            <span className="text-[var(--text-primary)] font-semibold text-lg">Cleopatra SIRV + Binga Beach Brothers</span>
                         </div>
                         <p className="mt-3 text-sm text-[var(--text-secondary)] leading-relaxed">
                             A balanced alliance delivering real-world assets in Palawan: eco-villas & resort ops, farm-to-table agriculture,

@@ -29,6 +29,27 @@ const MobileNav: React.FC<{
         return () => document.removeEventListener('keydown', handleEscape);
     }, [onClose]);
 
+    const mobileNavLinks = [
+        {
+            name: 'Blog',
+            icon: <NewspaperIcon className="h-6 w-6 text-gray-500" />,
+            action: () => { onBlogClick(); onClose(); },
+            isExternal: false,
+        },
+        {
+            name: 'Investor Portal',
+            icon: <KeyIcon className="h-6 w-6 text-gray-500" />,
+            action: () => { onPortalClick(); onClose(); },
+            isExternal: false,
+        },
+        {
+            name: 'GitHub',
+            icon: <GitHubIcon className="h-6 w-6 text-gray-500" />,
+            href: 'https://github.com/digitalnativepalawan/cleo',
+            isExternal: true,
+        }
+    ];
+
     return (
         <div 
             className={`fixed inset-0 z-[60] bg-white/80 backdrop-blur-sm transition-opacity duration-300 md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
@@ -47,36 +68,30 @@ const MobileNav: React.FC<{
                     </div>
                     <nav className="flex-grow p-4">
                         <ul className="space-y-2">
-                             <li>
-                                <button 
-                                    onClick={() => { onBlogClick(); onClose(); }} 
-                                    className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
-                                >
-                                    <NewspaperIcon className="h-6 w-6 text-gray-500" />
-                                    <span className="ml-3">Blog</span>
-                                </button>
-                            </li>
-                             <li>
-                                <button 
-                                    onClick={() => { onPortalClick(); onClose(); }} 
-                                    className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
-                                >
-                                    <KeyIcon className="h-6 w-6 text-gray-500" />
-                                    <span className="ml-3">Investor Portal</span>
-                                </button>
-                            </li>
-                            <li>
-                                <a 
-                                    href="https://github.com/digitalnativepalawan/palawan-tourism-ecosystem"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={onClose}
-                                    className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
-                                >
-                                    <GitHubIcon className="h-6 w-6 text-gray-500" />
-                                    <span className="ml-3">GitHub</span>
-                                </a>
-                            </li>
+                            {mobileNavLinks.map((item) => (
+                                <li key={item.name}>
+                                    {item.isExternal && item.href ? (
+                                        <a
+                                            href={item.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={onClose}
+                                            className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
+                                        >
+                                            {item.icon}
+                                            <span className="ml-3">{item.name}</span>
+                                        </a>
+                                    ) : (
+                                        <button
+                                            onClick={item.action}
+                                            className="flex items-center w-full text-lg font-medium text-gray-700 hover:bg-gray-100 p-3 rounded-md transition-colors"
+                                        >
+                                            {item.icon}
+                                            <span className="ml-3">{item.name}</span>
+                                        </button>
+                                    )}
+                                </li>
+                            ))}
                         </ul>
                     </nav>
                     <div className="p-4 border-t">
@@ -133,6 +148,9 @@ const Header: React.FC<{
     
     useEffect(() => {
         document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+        return () => {
+            document.body.style.overflow = '';
+        };
     }, [isMenuOpen]);
 
     useEffect(() => {
@@ -163,28 +181,29 @@ const Header: React.FC<{
 
     return (
         <>
-            {/* Top Fixed Clock Bar */}
-            <div className="fixed top-0 left-0 right-0 h-10 bg-gray-50/95 backdrop-blur-sm z-50 flex items-center justify-center border-b border-gray-200/80">
-                <div className="flex items-center space-x-4">
-                    <div className="font-sans tabular-nums tracking-tight text-lg font-semibold text-gray-900 flex items-baseline" aria-live="polite">
-                        <span>{displayHours}</span>
-                        <span className="blinking-colon mx-0.5 text-base relative top-[-1px]">:</span>
-                        <span>{displayMinutes}</span>
-                        <span className="text-xs ml-1.5 font-sans font-medium">{ampm}</span>
-                    </div>
-                    <div className="hidden sm:block font-sans text-[11px] font-medium text-gray-600" aria-label={`Date is ${formattedDate}`}>
-                        {formattedDate}
+            <header role="banner" className={`sticky top-0 z-40 bg-white/95 backdrop-blur-lg transition-shadow duration-300 ${isScrolled ? 'shadow-lg' : 'border-b border-gray-200'}`}>
+                {/* Top Clock Bar */}
+                <div className="h-10 bg-gray-50/95 flex items-center justify-center border-b border-gray-200/80">
+                    <div className="flex items-center space-x-4">
+                        <div className="font-sans tabular-nums tracking-tight text-lg font-semibold text-gray-900 flex items-baseline" aria-live="polite">
+                            <span>{displayHours}</span>
+                            <span className="blinking-colon mx-0.5 text-base relative top-[-1px]">:</span>
+                            <span>{displayMinutes}</span>
+                            <span className="text-xs ml-1.5 font-sans font-medium">{ampm}</span>
+                        </div>
+                        <div className="hidden sm:block font-sans text-[11px] font-medium text-gray-600" aria-label={`Date is ${formattedDate}`}>
+                            {formattedDate}
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <header role="banner" className={`sticky z-40 bg-white/95 backdrop-blur-lg transition-shadow duration-300 ${isScrolled ? 'shadow-lg' : 'border-b border-gray-200'}`} style={{ top: '2.5rem' }}>
+                
+                {/* Main Navigation Bar */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20">
                     <div className="flex items-center justify-between h-full">
                         {/* Left: Brand Name */}
                         <div className="flex-shrink-0">
                             <button onClick={onHomeButtonClick} className="text-lg font-semibold text-gray-800 hover:text-gray-900 transition-colors">
-                               Cleopatra × Binga
+                               Cleopatra + Binga Beach
                             </button>
                         </div>
 
@@ -209,7 +228,7 @@ const Header: React.FC<{
                                     <span>Portal</span>
                                 </button>
                                 <a
-                                    href="https://github.com/digitalnativepalawan/palawan-tourism-ecosystem"
+                                    href="https://github.com/digitalnativepalawan/cleo"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     aria-label="View source on GitHub"

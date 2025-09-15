@@ -47,7 +47,7 @@ const ComparisonTable = () => {
                     <thead className="bg-[var(--bg-secondary)]">
                         <tr>
                             <th scope="col" className="py-3 px-3 text-left font-semibold text-gray-700">Feature</th>
-                            <th scope="col" className="py-3 px-3 text-center font-semibold text-gray-700">BBB × Cleopatra</th>
+                            <th scope="col" className="py-3 px-3 text-center font-semibold text-gray-700">BBB + Cleopatra</th>
                             <th scope="col" className="py-3 px-3 text-center font-semibold text-gray-700">Typical Resort</th>
                         </tr>
                     </thead>
@@ -69,7 +69,7 @@ const ComparisonTable = () => {
                         <h4 className="font-semibold text-[var(--text-primary)] mb-2">{row.feature}</h4>
                         <div className="space-y-1.5">
                             <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-500">BBB × Cleopatra:</span>
+                                <span className="text-gray-500">BBB + Cleopatra:</span>
                                 <span className={`font-semibold ${row.positive ? 'text-green-600' : 'text-gray-800'}`}>{row.bbb}</span>
                             </div>
                             <div className="flex justify-between items-center text-xs">

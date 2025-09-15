@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, ReactNode } from 'react';
 import type { UserRole } from './Portal';
 
@@ -196,6 +198,19 @@ export const ProjectsWorkspace: React.FC<{
 
     const isFinancialView = !activeProjectId || (activeProject && activeProject.id !== 'project-blog');
 
+    // A simple formatter for the header totals to keep them concise on mobile
+    const formatHeaderTotal = (value: number): string => {
+        const formatter = (val: number) => val.toLocaleString('en-US', { maximumFractionDigits: 1 });
+
+        if (Math.abs(value) >= 1_000_000) {
+            return `₱${formatter(value / 1_000_000)}M`;
+        }
+        if (Math.abs(value) >= 1_000) {
+            return `₱${formatter(value / 1_000)}k`;
+        }
+        return `₱${value.toLocaleString('en-US')}`;
+    };
+
     const showToast = (msg: string) => {
         // In a real app, this would trigger a toast notification system.
         console.log(`TOAST: ${msg}`);
@@ -232,15 +247,12 @@ export const ProjectsWorkspace: React.FC<{
     return (
         <div className="h-full bg-[var(--bg-secondary)] flex flex-col">
             {/* Header */}
-            <header className="h-16 flex-shrink-0 px-4 sm:px-6 grid grid-cols-3 items-center border-b bg-[var(--bg-primary)] z-20 gap-4">
-                {/* Left: Project Title */}
-                <div className="flex items-center gap-2 sm:gap-4 justify-start">
+            <header className="h-16 flex-shrink-0 px-4 sm:px-6 grid grid-cols-3 items-center border-b bg-[var(--bg-primary)] z-20">
+                {/* Left: Mobile Menu Toggle */}
+                <div className="flex items-center justify-start">
                     <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-gray-500 hover:text-gray-800" aria-label="Open projects menu">
                         <MenuIcon className="h-6 w-6" />
                     </button>
-                    <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate" title={activeProject?.name || 'Dashboard'}>
-                        {activeProject?.name || 'Dashboard'}
-                    </h1>
                 </div>
 
                 {/* Center: Financial Totals */}
@@ -250,13 +262,13 @@ export const ProjectsWorkspace: React.FC<{
                             <div>
                                 <div className="text-xs text-gray-500 uppercase tracking-wider">Paid</div>
                                 <div className="text-base sm:text-lg font-semibold text-green-600 tabular-nums">
-                                    ₱{lifetimeTotals.paid.toLocaleString()}
+                                    {formatHeaderTotal(lifetimeTotals.paid)}
                                 </div>
                             </div>
                             <div>
                                 <div className="text-xs text-gray-500 uppercase tracking-wider">Unpaid</div>
                                 <div className="text-base sm:text-lg font-semibold text-red-600 tabular-nums">
-                                    ₱{lifetimeTotals.unpaid.toLocaleString()}
+                                    {formatHeaderTotal(lifetimeTotals.unpaid)}
                                 </div>
                             </div>
                         </>

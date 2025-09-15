@@ -1,3 +1,4 @@
+
 /*
   A Modern CSS Reset
   https://piccalil.li/blog/a-modern-css-reset/
@@ -76,7 +77,7 @@ body {
   hyphens: auto;
 }
 section[id] {
-  scroll-margin-top: 6.5rem; /* 104px */
+  scroll-margin-top: 7.5rem; /* 120px */
 }
 
 /* Accessibility Enhancements */
