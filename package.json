@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "description": "A landing page for the comprehensive business plan of the Palawan Integrated Tourism, Investment & Infrastructure Ecosystem.",
   "scripts": {
-    "build": "echo \"Static site: no build step required\"",
-    "start": "npx http-server -p 3000 . || echo \"Use any static server locally if needed\""
+    "build": "node -e \"const {execSync}=require('child_process');const fs=require('fs');execSync('rm -rf dist');fs.mkdirSync('dist',{recursive:true});const hasPublic=fs.existsSync('public')&&fs.statSync('public').isDirectory();const src=hasPublic?'public':'.';execSync(`bash -lc \\\"shopt -s dotglob nullglob && cp -R ${src}/* dist/\\\"`);execSync('rm -rf dist/node_modules dist/dist dist/.git dist/.github || true');console.log('Static build created in dist/');\"",
+    "start": "npx http-server -p 3000 dist || echo \"Use any static server locally if needed\""
   },
   "dependencies": {},
   "devDependencies": {},
