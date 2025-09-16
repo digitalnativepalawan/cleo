@@ -4,18 +4,12 @@
   "version": "0.1.0",
   "description": "A landing page for the comprehensive business plan of the Palawan Integrated Tourism, Investment & Infrastructure Ecosystem.",
   "scripts": {
-    "dev": "echo 'Run development server using a static file server.'",
-    "build": "echo 'No build step required for this static project.'",
-    "start": "echo 'Serve the root directory with a static file server.'"
+    "build": "echo \"Static site: no build step required\"",
+    "start": "npx http-server -p 3000 . || echo \"Use any static server locally if needed\""
   },
-  "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "recharts": "^2.12.7"
-  },
-  "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "typescript": "^5.5.3"
+  "dependencies": {},
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18"
   }
 }
