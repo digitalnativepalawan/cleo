@@ -31,7 +31,6 @@ const Portal: React.FC<PortalProps> = ({
 
   useEffect(() => {
     if (!isOpen) {
-      // Reset state on close (after close animation)
       const t = setTimeout(() => {
         setStep('role-select');
         setRole(null);
@@ -54,7 +53,6 @@ const Portal: React.FC<PortalProps> = ({
       role="dialog"
     >
       <div className="bg-[var(--bg-primary)] rounded-none md:rounded-2xl shadow-2xl w-full h-full flex flex-col relative">
-        {/* Close */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors z-50"
@@ -63,7 +61,6 @@ const Portal: React.FC<PortalProps> = ({
           <XIcon className="h-8 w-8" />
         </button>
 
-        {/* Step: Role Select */}
         {step === 'role-select' && (
           <div className="flex flex-col items-center justify-center h-full w-full bg-[var(--bg-secondary)]">
             <div className="w-full max-w-sm text-center p-4">
@@ -92,7 +89,6 @@ const Portal: React.FC<PortalProps> = ({
           </div>
         )}
 
-        {/* Step: Workspace */}
         {step === 'workspace' && role && (
           <ProjectsWorkspace
             role={role}
