@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-// ⬇️ Removed: import { GoogleGenAI, Type } from "@google/genai";
 import type { UserRole } from '../../Portal.tsx';
 import type {
   ProjectData,
@@ -19,9 +18,9 @@ type ActiveTab = 'tasks' | 'labor' | 'materials';
 
 const simpleId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-// ------------------------
-// FORM MODAL (manual only)
-// ------------------------
+/* -------------------------------------------------------
+   ITEM FORM MODAL (Manual entry only + Google Drive link)
+-------------------------------------------------------- */
 
 const ItemFormModal: React.FC<{
   isOpen: boolean;
@@ -30,12 +29,16 @@ const ItemFormModal: React.FC<{
   onSaveMultiple: (items: Partial<ProjectItem>[]) => Promise<void>;
   item: Partial<ProjectItem> | null;
   itemType: ActiveTab;
-}> = ({ isOpen, onClose, onSave, onSaveMultiple: _onSaveMultipleUnused, item, itemType }) => {
+}> = ({ isOpen, onClose, onSave, onSaveMultiple: _unused, item, itemType }) => {
   const [formData, setFormData] = useState<Partial<ProjectItem> | null>(item);
+
+  // New: optional Google Drive receipt link for Materials
+  const [receiptLink, setReceiptLink] = useState<string>('');
 
   useEffect(() => {
     setFormData(item);
-  }, [item]);
+    setReceiptLink(''); // reset link when opening/closing or switching item
+  }, [item, isOpen]);
 
   useEffect(() => {
     if (!formData) return;
@@ -66,9 +69,19 @@ const ItemFormModal: React.FC<{
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData) onSave(formData);
+    if (!formData) return;
+
+    // Persist receipt link (if provided) into Notes to avoid changing TS models
+    if (itemType === 'materials' && receiptLink.trim()) {
+      const existingNotes = (formData as Material).notes || '';
+      const linkLine = `Receipt: ${receiptLink.trim()}`;
+      const combined = existingNotes ? `${existingNotes}\n${linkLine}` : linkLine;
+      formData.notes = combined;
+    }
+
+    onSave(formData);
   };
 
   if (!isOpen || !formData) return null;
@@ -77,6 +90,10 @@ const ItemFormModal: React.FC<{
     'w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
   const title = `${formData.id ? 'Edit' : 'Add'} ${itemType.charAt(0).toUpperCase() + itemType.slice(1, -1)}`;
+
+  // Simple URL hinting (no hard validation to keep UX smooth)
+  const isLikelyDriveUrl = (url: string) =>
+    /https?:\/\/(drive|docs)\.google\.com\/.+/i.test(url) || /https?:\/\/drive\.google\.com\/file\/d\//i.test(url);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
@@ -93,35 +110,31 @@ const ItemFormModal: React.FC<{
 
         <form id="item-form" onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           {itemType === 'materials' && (
-            <div>
-              <label className={labelClass}>Scan a Receipt</label>
-
-              {/* Uploader is intentionally disabled. GenAI feature removed. */}
-              <label
-                htmlFor="receipt-upload"
-                className="relative cursor-not-allowed mt-1 flex justify-center w-full px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg text-center bg-gray-50"
-                title="Receipt scanning is temporarily disabled."
-              >
-                <div className="space-y-1 text-center">
-                  <svg className="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                  </svg>
-                  <div className="flex text-sm text-gray-600">
-                    <span className="font-medium text-gray-500">Upload a file</span>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                  <p className="text-xs text-amber-600 mt-1">Receipt scanning is disabled. Please enter items manually.</p>
-                </div>
-                <input id="receipt-upload" name="receipt-upload" type="file" className="sr-only" disabled />
+            <div className="space-y-2">
+              <label htmlFor="receiptLink" className={labelClass}>
+                Receipt Link (Google Drive URL)
               </label>
-
-              <div className="flex items-center my-4">
-                <div className="flex-grow border-t border-gray-200"></div>
-                <span className="flex-shrink mx-4 text-sm text-gray-400">OR</span>
-                <div className="flex-grow border-t border-gray-200"></div>
+              <input
+                id="receiptLink"
+                type="url"
+                inputMode="url"
+                placeholder="https://drive.google.com/..."
+                className={inputClass}
+                value={receiptLink}
+                onChange={e => setReceiptLink(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                Paste a shared Google Drive link to the photo/PDF of the receipt. This link will be stored in the item’s
+                notes (e.g., <span className="italic">Receipt: https://drive.google.com/…</span>).
+              </p>
+              {receiptLink && !isLikelyDriveUrl(receiptLink) && (
+                <p className="text-xs text-amber-600">Tip: it doesn’t look like a Google Drive link.</p>
+              )}
+              <div className="flex items-center my-3">
+                <div className="flex-grow border-t border-gray-200" />
+                <span className="mx-3 text-sm text-gray-400">Then fill in the item details below</span>
+                <div className="flex-grow border-t border-gray-200" />
               </div>
-              <h3 className="text-base font-semibold text-gray-800 text-center">Enter Manually</h3>
             </div>
           )}
 
@@ -308,7 +321,6 @@ const ItemFormModal: React.FC<{
                   <label htmlFor="category" className={labelClass}>
                     Category
                   </label>
-                    {/* categories kept as-is */}
                   <select
                     name="category"
                     value={(formData as Material).category}
@@ -444,9 +456,9 @@ const ItemFormModal: React.FC<{
   );
 };
 
-// ----------------
-// MAIN MODULE
-// ----------------
+/* ----------------
+   MAIN MODULE
+----------------- */
 
 type SortableKeys = keyof Task | keyof Labor | keyof Material;
 
