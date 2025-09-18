@@ -1,3 +1,9 @@
+// Default export for ProjectModule compatibility
+export default {
+  TasksView,
+  LaborView,
+  MaterialsView,
+};
 import React from "react";
 import type {
   Task,
